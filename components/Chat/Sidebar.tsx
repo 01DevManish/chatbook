@@ -58,12 +58,12 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                 setUsers([]);
             }
             setLoading(false);
+            setLoading(false);
         }, (error) => {
             console.error("Error fetching users:", error);
             setLoading(false);
         });
 
-        return () => unsubscribe();
         return () => unsubscribe();
     }, [user]);
 
@@ -151,7 +151,7 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
             {/* Header - WhatsApp Style */}
             <div className="flex items-center justify-between px-4 py-3 bg-[#202c33]">
                 <div className="flex items-center space-x-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden cursor-pointer">
+                    <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden cursor-pointer">
                         {user?.photoURL ? (
                             <img src={user.photoURL} alt="Profile" className="h-full w-full object-cover" />
                         ) : (

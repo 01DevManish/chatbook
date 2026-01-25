@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react"; // Only keep necessary react imports
+import { useEffect, useState, useRef, useCallback } from "react";
 import { ref, onValue, push, set, update, remove } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
