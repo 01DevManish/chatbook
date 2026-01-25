@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useRef, useCallback } from "react"; // Only keep necessary react imports
 import { ref, onValue, push, set, update, remove } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import MessageBubble from "./MessageBubble";
-import { Image as ImageIcon, Send, ArrowLeft, X, Reply, Smile } from "lucide-react";
+import { Image as ImageIcon, Send, ArrowLeft, X, Reply, Smile, MoreVertical } from "lucide-react";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
+import PinModal from "@/components/UI/PinModal";
 
 interface UserData {
     uid: string;
@@ -46,10 +47,15 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [isOtherTyping, setIsOtherTyping] = useState(false);
+    const [chatSettings, setChatSettings] = useState<{ lastClearedTimestamp?: number } | null>(null);
+    const [showMenu, setShowMenu] = useState(false);
+    const [showPinModal, setShowPinModal] = useState(false);
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const chatId =
@@ -57,11 +63,14 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
             ? [user.uid, selectedUser.uid].sort().join("_")
             : null;
 
-    // Close emoji picker when clicking outside
+    // Close menu/picker when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
                 setShowEmojiPicker(false);
+            }
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setShowMenu(false);
             }
         };
 
@@ -95,6 +104,49 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
 
         return () => unsubscribe();
     }, [chatId, user]);
+    // Listen for chat settings (last cleared)
+    useEffect(() => {
+        if (!chatId || !user) return;
+        const settingsRef = ref(rtdb, `users/${user.uid}/chatSettings/${chatId}`);
+        const unsubscribe = onValue(settingsRef, (snapshot) => {
+            setChatSettings(snapshot.val());
+        });
+        return () => unsubscribe();
+    }, [chatId, user]);
+
+    // Handle Actions
+    const handleClearChat = async () => {
+        if (!user || !chatId) return;
+        try {
+            await update(ref(rtdb, `users/${user.uid}/chatSettings/${chatId}`), {
+                lastClearedTimestamp: Date.now()
+            });
+            setShowMenu(false);
+        } catch (error) {
+            console.error("Error clearing chat:", error);
+        }
+    };
+
+    const handleRetrieveChat = () => {
+        setShowMenu(false);
+        setShowPinModal(true);
+    };
+
+    const onPinSuccess = async () => {
+        if (!user || !chatId) return;
+        try {
+            await remove(ref(rtdb, `users/${user.uid}/chatSettings/${chatId}/lastClearedTimestamp`));
+            setShowPinModal(false);
+        } catch (error) {
+            console.error("Error retrieving chat:", error);
+        }
+    };
+
+    // Filter messages based on cleared timestamp
+    const visibleMessages = messages.filter(msg => {
+        if (!chatSettings?.lastClearedTimestamp) return true;
+        return msg.timestamp > chatSettings.lastClearedTimestamp;
+    });
 
     // Listen for typing status
     useEffect(() => {
@@ -342,6 +394,33 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                         <p className="text-xs text-[#8696a0]">online</p>
                     )}
                 </div>
+                {/* Menu Button */}
+                <div className="relative" ref={menuRef}>
+                    <button
+                        onClick={() => setShowMenu(!showMenu)}
+                        className="p-2 text-[#aebac1] hover:bg-[#374248] rounded-full transition-colors"
+                    >
+                        <MoreVertical size={24} />
+                    </button>
+                    {showMenu && (
+                        <div className="absolute right-0 top-12 w-48 bg-[#233138] rounded-md shadow-xl py-2 z-50 animate-in fade-in zoom-in duration-100 origin-top-right">
+                            <button
+                                onClick={handleClearChat}
+                                className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm"
+                            >
+                                Clear Chat
+                            </button>
+                            {chatSettings?.lastClearedTimestamp && (
+                                <button
+                                    onClick={handleRetrieveChat}
+                                    className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm"
+                                >
+                                    Retrieve Messages
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Messages - WhatsApp Dark Pattern - Scrollable */}
@@ -354,7 +433,14 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
             >
                 <div className="flex flex-col justify-end min-h-full">
                     <div className="space-y-1">
-                        {messages.map((msg) => (
+                        {visibleMessages.length === 0 && chatSettings?.lastClearedTimestamp && (
+                            <div className="text-center py-6">
+                                <span className="bg-[#1f2c33] text-[#8696a0] text-xs px-3 py-1.5 rounded-full border border-[#2a3942]">
+                                    Messages cleared. Use menu to retrieve.
+                                </span>
+                            </div>
+                        )}
+                        {visibleMessages.map((msg) => (
                             <MessageBubble
                                 key={msg.id}
                                 message={msg}
@@ -462,6 +548,13 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                     </button>
                 </form>
             </div>
+            {/* Pin Modal */}
+            <PinModal
+                isOpen={showPinModal}
+                onClose={() => setShowPinModal(false)}
+                onSuccess={onPinSuccess}
+                title="Retrieve Hidden Messages"
+            />
         </div>
     );
 }
