@@ -41,9 +41,9 @@ export default function HomePage() {
   if (!user) return null;
 
   return (
-    <div className="flex h-screen h-[100dvh] overflow-hidden bg-[#111b21]">
+    <div className="flex h-screen h-[100dvh] overflow-hidden bg-[#111b21] safe-area-top">
       {/* Container with max width for large screens */}
-      <div className="flex w-full max-w-[1600px] mx-auto shadow-2xl">
+      <div className="flex w-full max-w-[1600px] mx-auto shadow-2xl h-full">
 
         {/* Sidebar - WhatsApp style */}
         <div

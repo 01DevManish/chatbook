@@ -280,10 +280,10 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     };
 
     return (
-        <div className="flex h-full flex-col bg-[#0b141a]">
-            {/* Header - WhatsApp Style */}
-            <div className="flex items-center space-x-3 bg-[#202c33] px-4 py-2 z-10">
-                <button onClick={onBack} className="sm:hidden text-[#aebac1] p-1 -ml-2">
+        <div className="flex flex-col h-full bg-[#0b141a] overflow-hidden">
+            {/* Header - WhatsApp Style - Fixed */}
+            <div className="flex-shrink-0 flex items-center space-x-3 bg-[#202c33] px-4 py-2.5 z-10">
+                <button onClick={onBack} className="sm:hidden text-[#aebac1] p-1 -ml-2 active:bg-[#374248] rounded-full">
                     <ArrowLeft size={24} />
                 </button>
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden flex-shrink-0">
@@ -309,23 +309,27 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 </div>
             </div>
 
-            {/* Messages - WhatsApp Dark Pattern */}
+            {/* Messages - WhatsApp Dark Pattern - Scrollable */}
             <div
-                className="flex-1 overflow-y-auto px-4 py-2 sm:px-6 lg:px-12 space-y-1"
+                className="flex-1 overflow-y-auto overscroll-contain px-3 py-2 sm:px-6 lg:px-12"
                 style={{
                     backgroundColor: '#0b141a',
                     backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23182229' fill-opacity='0.6'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
                 }}
             >
-                {messages.map((msg) => (
-                    <MessageBubble
-                        key={msg.id}
-                        message={msg}
-                        onReply={handleReply}
-                        getReplyName={getReplyPreviewName}
-                    />
-                ))}
-                <div ref={messagesEndRef} />
+                <div className="flex flex-col justify-end min-h-full">
+                    <div className="space-y-1">
+                        {messages.map((msg) => (
+                            <MessageBubble
+                                key={msg.id}
+                                message={msg}
+                                onReply={handleReply}
+                                getReplyName={getReplyPreviewName}
+                            />
+                        ))}
+                    </div>
+                    <div ref={messagesEndRef} />
+                </div>
             </div>
 
             {/* Reply Preview - WhatsApp Style */}
@@ -360,8 +364,8 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 </div>
             )}
 
-            {/* Input - WhatsApp Style */}
-            <div className="bg-[#202c33] px-4 py-3 relative">
+            {/* Input - WhatsApp Style - Fixed at Bottom */}
+            <div className="flex-shrink-0 bg-[#202c33] px-3 py-2 sm:px-4 sm:py-3 relative safe-area-bottom">
                 {image && (
                     <div className="mb-3 relative inline-block">
                         <img src={image} alt="Preview" className="h-20 rounded-lg border border-[#2a3942]" />
