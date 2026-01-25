@@ -52,10 +52,10 @@ export default function PinModal({ isOpen, onClose, onSuccess, title = "Enter Se
                 onSuccess();
             } else {
                 // Temporary hardcoded check for demo purposes
-                if (newPin.join("") === "1234") {
+                if (newPin.join("") === "2003") {
                     onSuccess();
                 } else {
-                    setError("Incorrect PIN (Try 1234)");
+                    setError("Incorrect PIN (Try 2003)");
                     setPin(["", "", "", ""]);
                     inputRefs[0].current?.focus();
                 }

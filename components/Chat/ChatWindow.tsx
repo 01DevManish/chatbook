@@ -369,7 +369,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     return (
         <div className="flex flex-col h-full bg-[#0b141a] overflow-hidden">
             {/* Header - WhatsApp Style - Fixed */}
-            <div className="flex-shrink-0 flex items-center space-x-3 bg-[#202c33] px-4 py-2.5 z-10">
+            <div className="flex-shrink-0 flex items-center space-x-3 bg-[#202c33] px-4 py-2.5 z-50">
                 <button onClick={onBack} className="sm:hidden text-[#aebac1] p-1 -ml-2 active:bg-[#374248] rounded-full">
                     <ArrowLeft size={24} />
                 </button>
