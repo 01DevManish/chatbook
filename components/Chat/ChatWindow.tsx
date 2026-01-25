@@ -5,7 +5,8 @@ import { ref, onValue, push, set, update } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import MessageBubble from "./MessageBubble";
-import { Image as ImageIcon, Send, ArrowLeft, X, Reply } from "lucide-react";
+import { Image as ImageIcon, Send, ArrowLeft, X, Reply, Smile } from "lucide-react";
+import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 
 interface UserData {
     uid: string;
@@ -43,14 +44,28 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     const [image, setImage] = useState<string | null>(null);
     const [sending, setSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const emojiPickerRef = useRef<HTMLDivElement>(null);
 
     const chatId =
         user && selectedUser
             ? [user.uid, selectedUser.uid].sort().join("_")
             : null;
+
+    // Close emoji picker when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+                setShowEmojiPicker(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     useEffect(() => {
         if (!chatId || !user) return;
@@ -94,6 +109,15 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
         setReplyingTo(null);
     };
 
+    const handleEmojiClick = (emojiData: EmojiClickData) => {
+        setNewMessage((prev) => prev + emojiData.emoji);
+        inputRef.current?.focus();
+    };
+
+    const toggleEmojiPicker = () => {
+        setShowEmojiPicker((prev) => !prev);
+    };
+
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
@@ -133,6 +157,8 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
         if ((!newMessage.trim() && !image) || !user || !chatId) return;
 
         setSending(true);
+        setShowEmojiPicker(false);
+
         try {
             // Update chat metadata
             await set(ref(rtdb, `chats/${chatId}/metadata`), {
@@ -234,8 +260,22 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 </div>
             )}
 
+            {/* Emoji Picker */}
+            {showEmojiPicker && (
+                <div ref={emojiPickerRef} className="absolute bottom-20 left-4 z-50">
+                    <EmojiPicker
+                        onEmojiClick={handleEmojiClick}
+                        theme={Theme.LIGHT}
+                        width={320}
+                        height={400}
+                        searchPlaceholder="Search emoji..."
+                        previewConfig={{ showPreview: false }}
+                    />
+                </div>
+            )}
+
             {/* Input */}
-            <div className="bg-gray-50 p-3">
+            <div className="bg-gray-50 p-3 relative">
                 {image && (
                     <div className="mb-2 relative inline-block">
                         <img src={image} alt="Preview" className="h-20 rounded-md border" />
@@ -255,13 +295,27 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                         ref={fileInputRef}
                         onChange={handleImageSelect}
                     />
+
+                    {/* Emoji Button */}
+                    <button
+                        type="button"
+                        onClick={toggleEmojiPicker}
+                        className={`p-2 rounded-full transition-colors ${showEmojiPicker ? 'bg-green-100 text-green-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
+                        title="Emoji"
+                    >
+                        <Smile size={24} />
+                    </button>
+
+                    {/* Image Button */}
                     <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="text-gray-500 hover:text-gray-700 p-2"
+                        className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 p-2 rounded-full transition-colors"
+                        title="Attach Image"
                     >
                         <ImageIcon size={24} />
                     </button>
+
                     <input
                         ref={inputRef}
                         type="text"
@@ -273,7 +327,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                     <button
                         type="submit"
                         disabled={sending || (!newMessage && !image)}
-                        className="rounded-full bg-green-600 p-2 text-white hover:bg-green-700 disabled:opacity-50"
+                        className="rounded-full bg-green-600 p-2 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
                     >
                         <Send size={20} />
                     </button>
