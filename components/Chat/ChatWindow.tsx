@@ -91,7 +91,6 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 });
             }
             setMessages(msgs);
-            scrollToBottom();
         });
 
         return () => unsubscribe();
@@ -130,8 +129,21 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     }, [chatId, user]);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        // Use setTimeout to ensure DOM is updated
+        setTimeout(() => {
+            if (messagesEndRef.current) {
+                messagesEndRef.current.scrollIntoView({
+                    behavior: "auto",
+                    block: "end"
+                });
+            }
+        }, 100);
     };
+
+    // Scroll to bottom when messages change
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
 
     // Update typing status
     const updateTypingStatus = useCallback((isTyping: boolean) => {
@@ -328,7 +340,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                             />
                         ))}
                     </div>
-                    <div ref={messagesEndRef} />
+                    <div ref={messagesEndRef} className="h-2" />
                 </div>
             </div>
 
