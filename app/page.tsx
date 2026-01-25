@@ -5,13 +5,21 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Chat/Sidebar";
 import ChatWindow from "@/components/Chat/ChatWindow";
-import { DocumentData } from "firebase/firestore";
 import { cn } from "@/lib/utils";
+
+interface UserData {
+  uid: string;
+  displayName?: string;
+  email?: string;
+  photoURL?: string;
+  username?: string;
+  lastSeen?: number;
+}
 
 export default function HomePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [selectedUser, setSelectedUser] = useState<DocumentData | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {

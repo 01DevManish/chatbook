@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { auth, googleProvider, db } from "@/lib/firebase";
+import { ref, get, set } from "firebase/database";
+import { auth, googleProvider, rtdb } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/UI/Button";
@@ -23,7 +23,7 @@ export default function LoginPage() {
 
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            router.push("/");
+            router.replace("/");
         } catch (err: any) {
             setError("Failed to login. Please check your credentials.");
             console.error(err);
@@ -39,23 +39,24 @@ export default function LoginPage() {
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
 
-            // Check if user exists in Firestore
-            const userDocRef = doc(db, "users", user.uid);
-            const userDoc = await getDoc(userDocRef);
+            // Check if user exists in Realtime Database
+            const userRef = ref(rtdb, `users/${user.uid}`);
+            const snapshot = await get(userRef);
 
-            if (!userDoc.exists()) {
-                // Create user document if it doesn't exist
-                await setDoc(userDocRef, {
+            if (!snapshot.exists()) {
+                // Create user in Realtime Database
+                await set(userRef, {
                     uid: user.uid,
                     displayName: user.displayName,
                     email: user.email,
                     photoURL: user.photoURL,
-                    createdAt: serverTimestamp(),
-                    lastSeen: serverTimestamp(),
+                    username: user.email?.split("@")[0].toLowerCase(),
+                    createdAt: Date.now(),
+                    lastSeen: Date.now(),
                 });
             }
 
-            router.push("/");
+            router.replace("/");
         } catch (err: any) {
             setError("Failed to login with Google.");
             console.error(err);

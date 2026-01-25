@@ -1,64 +1,70 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-    collection,
-    query,
-    where,
-    onSnapshot,
-    DocumentData,
-    getDocs,
-    doc,
-} from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
+import { ref, onValue } from "firebase/database";
+import { rtdb, auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 import { LogOut, User as UserIcon, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+interface UserData {
+    uid: string;
+    displayName?: string;
+    email?: string;
+    photoURL?: string;
+    username?: string;
+}
+
 interface SidebarProps {
-    selectedUser: DocumentData | null;
-    onSelectUser: (user: DocumentData) => void;
+    selectedUser: UserData | null;
+    onSelectUser: (user: UserData) => void;
 }
 
 export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
     const { user } = useAuth();
-    const [users, setUsers] = useState<DocumentData[]>([]);
+    const [users, setUsers] = useState<UserData[]>([]);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
-    // Fetch ALL users (simple approach for testing)
+    // Fetch ALL users from Realtime Database
     useEffect(() => {
         if (!user) {
             console.log("No current user, skipping fetch");
+            setLoading(false);
             return;
         }
 
         console.log("Current user UID:", user.uid);
-        console.log("Fetching users from Firestore...");
+        console.log("Fetching users from Realtime Database...");
 
-        const unsubscribe = onSnapshot(
-            collection(db, "users"),
-            (snapshot) => {
-                console.log("Snapshot received! Total docs:", snapshot.size);
+        const usersRef = ref(rtdb, "users");
 
-                snapshot.docs.forEach((doc) => {
-                    console.log("User doc:", doc.id, doc.data());
-                });
+        const unsubscribe = onValue(usersRef, (snapshot) => {
+            console.log("Snapshot received! Exists:", snapshot.exists());
 
-                const userList = snapshot.docs
-                    .map((doc) => doc.data())
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                console.log("Raw data:", data);
+
+                const userList: UserData[] = Object.keys(data)
+                    .map((key) => ({
+                        uid: key,
+                        ...data[key]
+                    }))
                     .filter((u) => u.uid !== user.uid);
 
                 console.log("Filtered user list (excluding self):", userList.length);
                 setUsers(userList);
-                setLoading(false);
-            },
-            (error) => {
-                console.error("Error fetching users:", error);
-                setLoading(false);
+            } else {
+                console.log("No users found in database");
+                setUsers([]);
             }
-        );
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching users:", error);
+            setLoading(false);
+        });
 
         return () => unsubscribe();
     }, [user]);

@@ -1,41 +1,51 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import {
-    collection,
-    query,
-    where,
-    orderBy,
-    onSnapshot,
-    addDoc,
-    serverTimestamp,
-    DocumentData,
-    doc,
-    setDoc,
-    updateDoc,
-    getDocs,
-    writeBatch
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { ref, onValue, push, set, update } from "firebase/database";
+import { rtdb } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/UI/Button";
-import { Input } from "@/components/UI/Input";
 import MessageBubble from "./MessageBubble";
-import { Image as ImageIcon, Send, ArrowLeft } from "lucide-react";
+import { Image as ImageIcon, Send, ArrowLeft, X, Reply } from "lucide-react";
+
+interface UserData {
+    uid: string;
+    displayName?: string;
+    email?: string;
+    photoURL?: string;
+    username?: string;
+    lastSeen?: number;
+}
 
 interface ChatWindowProps {
-    selectedUser: DocumentData;
+    selectedUser: UserData;
     onBack: () => void;
+}
+
+export interface Message {
+    id: string;
+    senderId: string;
+    receiverId: string;
+    text: string;
+    image?: string | null;
+    timestamp: number;
+    read: boolean;
+    replyTo?: {
+        id: string;
+        text: string;
+        senderId: string;
+    } | null;
 }
 
 export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     const { user } = useAuth();
-    const [messages, setMessages] = useState<DocumentData[]>([]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState("");
     const [image, setImage] = useState<string | null>(null);
     const [sending, setSending] = useState(false);
+    const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const chatId =
         user && selectedUser
@@ -43,32 +53,29 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
             : null;
 
     useEffect(() => {
-        if (!chatId) return;
+        if (!chatId || !user) return;
 
-        const q = query(
-            collection(db, "chats", chatId, "messages"),
-            orderBy("timestamp", "asc")
-        );
+        const messagesRef = ref(rtdb, `chats/${chatId}/messages`);
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const msgs: DocumentData[] = [];
-            snapshot.forEach((doc) => {
-                msgs.push({ id: doc.id, ...doc.data() });
-            });
+        const unsubscribe = onValue(messagesRef, (snapshot) => {
+            const msgs: Message[] = [];
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                Object.keys(data).forEach((key) => {
+                    msgs.push({ id: key, ...data[key] });
+                });
+                // Sort by timestamp
+                msgs.sort((a, b) => a.timestamp - b.timestamp);
+
+                // Mark unread messages as read
+                msgs.forEach((msg) => {
+                    if (msg.receiverId === user.uid && !msg.read) {
+                        update(ref(rtdb, `chats/${chatId}/messages/${msg.id}`), { read: true });
+                    }
+                });
+            }
             setMessages(msgs);
             scrollToBottom();
-
-            // Mark unread messages as read
-            const unreadBatch = writeBatch(db);
-            let hasUnread = false;
-            snapshot.docs.forEach((doc) => {
-                const data = doc.data();
-                if (data.receiverId === user?.uid && !data.read) {
-                    unreadBatch.update(doc.ref, { read: true });
-                    hasUnread = true;
-                }
-            });
-            if (hasUnread) unreadBatch.commit();
         });
 
         return () => unsubscribe();
@@ -78,13 +85,22 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
+    const handleReply = (message: Message) => {
+        setReplyingTo(message);
+        inputRef.current?.focus();
+    };
+
+    const cancelReply = () => {
+        setReplyingTo(null);
+    };
+
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const reader = new FileReader();
 
             reader.onload = (event) => {
-                const img = new Image();
+                const img = new window.Image();
                 img.onload = () => {
                     const canvas = document.createElement("canvas");
                     let width = img.width;
@@ -118,34 +134,49 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
 
         setSending(true);
         try {
-            // Ensure chat document exists
-            await setDoc(
-                doc(db, "chats", chatId),
-                {
-                    participants: [user.uid, selectedUser.uid],
-                    lastMessage: newMessage || "Image",
-                    lastMessageTimestamp: serverTimestamp(),
-                },
-                { merge: true }
-            );
+            // Update chat metadata
+            await set(ref(rtdb, `chats/${chatId}/metadata`), {
+                participants: [user.uid, selectedUser.uid],
+                lastMessage: newMessage || "Image",
+                lastMessageTimestamp: Date.now(),
+            });
 
-            // Add message
-            await addDoc(collection(db, "chats", chatId, "messages"), {
+            // Build message object
+            const messageData: any = {
                 senderId: user.uid,
                 receiverId: selectedUser.uid,
                 text: newMessage,
-                image: image,
-                timestamp: serverTimestamp(),
+                image: image || null,
+                timestamp: Date.now(),
                 read: false,
-            });
+            };
+
+            // Add reply data if replying
+            if (replyingTo) {
+                messageData.replyTo = {
+                    id: replyingTo.id,
+                    text: replyingTo.text || (replyingTo.image ? "📷 Image" : ""),
+                    senderId: replyingTo.senderId,
+                };
+            }
+
+            // Add message
+            const messagesRef = ref(rtdb, `chats/${chatId}/messages`);
+            await push(messagesRef, messageData);
 
             setNewMessage("");
             setImage(null);
+            setReplyingTo(null);
         } catch (error) {
             console.error("Error sending message:", error);
         } finally {
             setSending(false);
         }
+    };
+
+    const getReplyPreviewName = (senderId: string) => {
+        if (senderId === user?.uid) return "You";
+        return selectedUser.displayName || "User";
     };
 
     return (
@@ -166,7 +197,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                     <h3 className="font-medium text-gray-900">{selectedUser.displayName}</h3>
                     {selectedUser.lastSeen && (
                         <p className="text-xs text-gray-500">
-                            Last seen {selectedUser.lastSeen?.toDate ? new Date(selectedUser.lastSeen.toDate()).toLocaleTimeString() : ""}
+                            Last seen {new Date(selectedUser.lastSeen).toLocaleTimeString()}
                         </p>
                     )}
                 </div>
@@ -175,10 +206,33 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat">
                 {messages.map((msg) => (
-                    <MessageBubble key={msg.id} message={msg} />
+                    <MessageBubble
+                        key={msg.id}
+                        message={msg}
+                        onReply={handleReply}
+                        getReplyName={getReplyPreviewName}
+                    />
                 ))}
                 <div ref={messagesEndRef} />
             </div>
+
+            {/* Reply Preview */}
+            {replyingTo && (
+                <div className="bg-gray-100 border-l-4 border-green-500 px-4 py-2 flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
+                            <Reply size={14} />
+                            Replying to {getReplyPreviewName(replyingTo.senderId)}
+                        </div>
+                        <p className="text-sm text-gray-600 truncate">
+                            {replyingTo.text || (replyingTo.image ? "📷 Image" : "")}
+                        </p>
+                    </div>
+                    <button onClick={cancelReply} className="text-gray-500 hover:text-gray-700 p-1">
+                        <X size={20} />
+                    </button>
+                </div>
+            )}
 
             {/* Input */}
             <div className="bg-gray-50 p-3">
@@ -209,11 +263,12 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                         <ImageIcon size={24} />
                     </button>
                     <input
+                        ref={inputRef}
                         type="text"
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type a message"
-                        className="flex-1 rounded-full border border-gray-300 px-4 py-2 focus:border-green-500 focus:outline-none"
+                        placeholder={replyingTo ? "Type your reply..." : "Type a message"}
+                        className="flex-1 rounded-full border border-gray-300 bg-white text-gray-900 placeholder-gray-500 px-4 py-2 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
                     />
                     <button
                         type="submit"

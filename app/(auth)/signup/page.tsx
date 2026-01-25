@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { createUserWithEmailAndPassword, updateProfile, signInWithPopup } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
-import { auth, db, googleProvider } from "@/lib/firebase";
+import { ref, set, get } from "firebase/database";
+import { auth, rtdb, googleProvider } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/UI/Button";
@@ -36,18 +36,18 @@ export default function SignupPage() {
                 displayName: name,
             });
 
-            // Create user document in Firestore
-            await setDoc(doc(db, "users", user.uid), {
+            // Create user in Realtime Database
+            await set(ref(rtdb, `users/${user.uid}`), {
                 uid: user.uid,
                 displayName: name,
                 email: user.email,
                 username: username.toLowerCase(),
                 photoURL: user.photoURL,
-                createdAt: serverTimestamp(),
-                lastSeen: serverTimestamp(),
+                createdAt: Date.now(),
+                lastSeen: Date.now(),
             });
 
-            router.push("/");
+            router.replace("/");
         } catch (err: any) {
             setError(err.message || "Failed to create account.");
             console.error(err);
@@ -63,24 +63,24 @@ export default function SignupPage() {
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
 
-            // Check if user exists in Firestore
-            const userDocRef = doc(db, "users", user.uid);
-            const userDoc = await getDoc(userDocRef);
+            // Check if user exists in Realtime Database
+            const userRef = ref(rtdb, `users/${user.uid}`);
+            const snapshot = await get(userRef);
 
-            if (!userDoc.exists()) {
-                // Create user document if it doesn't exist
-                await setDoc(userDocRef, {
+            if (!snapshot.exists()) {
+                // Create user in Realtime Database
+                await set(userRef, {
                     uid: user.uid,
                     displayName: user.displayName,
                     email: user.email,
                     username: user.email?.split("@")[0].toLowerCase(),
                     photoURL: user.photoURL,
-                    createdAt: serverTimestamp(),
-                    lastSeen: serverTimestamp(),
+                    createdAt: Date.now(),
+                    lastSeen: Date.now(),
                 });
             }
 
-            router.push("/");
+            router.replace("/");
         } catch (err: any) {
             setError("Failed to sign up with Google.");
             console.error(err);

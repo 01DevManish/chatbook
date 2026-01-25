@@ -14,8 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chatbook",
-  description: "Real-time chat application",
+  title: "Chatbook - Real-time Chat App",
+  description: "Connect and chat with friends in real-time with Chatbook",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
