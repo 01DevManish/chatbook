@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { ref, onValue, push, set, update } from "firebase/database";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { ref, onValue, push, set, update, remove } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import MessageBubble from "./MessageBubble";
@@ -45,10 +45,12 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     const [sending, setSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [isOtherTyping, setIsOtherTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const chatId =
         user && selectedUser
@@ -67,6 +69,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // Listen for messages
     useEffect(() => {
         if (!chatId || !user) return;
 
@@ -79,10 +82,8 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 Object.keys(data).forEach((key) => {
                     msgs.push({ id: key, ...data[key] });
                 });
-                // Sort by timestamp
                 msgs.sort((a, b) => a.timestamp - b.timestamp);
 
-                // Mark unread messages as read
                 msgs.forEach((msg) => {
                     if (msg.receiverId === user.uid && !msg.read) {
                         update(ref(rtdb, `chats/${chatId}/messages/${msg.id}`), { read: true });
@@ -96,8 +97,74 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
         return () => unsubscribe();
     }, [chatId, user]);
 
+    // Listen for typing status
+    useEffect(() => {
+        if (!chatId || !user) return;
+
+        const typingRef = ref(rtdb, `chats/${chatId}/typing/${selectedUser.uid}`);
+
+        const unsubscribe = onValue(typingRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                // Check if typing timestamp is recent (within 5 seconds)
+                if (data.timestamp && Date.now() - data.timestamp < 5000) {
+                    setIsOtherTyping(true);
+                } else {
+                    setIsOtherTyping(false);
+                }
+            } else {
+                setIsOtherTyping(false);
+            }
+        });
+
+        return () => unsubscribe();
+    }, [chatId, selectedUser.uid, user]);
+
+    // Clean up typing status when leaving
+    useEffect(() => {
+        return () => {
+            if (chatId && user) {
+                remove(ref(rtdb, `chats/${chatId}/typing/${user.uid}`));
+            }
+        };
+    }, [chatId, user]);
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    // Update typing status
+    const updateTypingStatus = useCallback((isTyping: boolean) => {
+        if (!chatId || !user) return;
+
+        const typingRef = ref(rtdb, `chats/${chatId}/typing/${user.uid}`);
+
+        if (isTyping) {
+            set(typingRef, {
+                isTyping: true,
+                timestamp: Date.now(),
+            });
+        } else {
+            remove(typingRef);
+        }
+    }, [chatId, user]);
+
+    // Handle input change with typing indicator
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setNewMessage(e.target.value);
+
+        // Update typing status
+        updateTypingStatus(true);
+
+        // Clear previous timeout
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        // Set new timeout to clear typing status after 2 seconds of no typing
+        typingTimeoutRef.current = setTimeout(() => {
+            updateTypingStatus(false);
+        }, 2000);
     };
 
     const handleReply = (message: Message) => {
@@ -112,6 +179,14 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     const handleEmojiClick = (emojiData: EmojiClickData) => {
         setNewMessage((prev) => prev + emojiData.emoji);
         inputRef.current?.focus();
+        updateTypingStatus(true);
+
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+        typingTimeoutRef.current = setTimeout(() => {
+            updateTypingStatus(false);
+        }, 2000);
     };
 
     const toggleEmojiPicker = () => {
@@ -130,7 +205,6 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                     let width = img.width;
                     let height = img.height;
 
-                    // Resize if too large (max 800px width)
                     const MAX_WIDTH = 800;
                     if (width > MAX_WIDTH) {
                         height *= MAX_WIDTH / width;
@@ -142,7 +216,6 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                     const ctx = canvas.getContext("2d");
                     ctx?.drawImage(img, 0, 0, width, height);
 
-                    // Compress to JPEG with 0.7 quality
                     const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
                     setImage(dataUrl);
                 };
@@ -158,16 +231,19 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
 
         setSending(true);
         setShowEmojiPicker(false);
+        updateTypingStatus(false);
+
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
 
         try {
-            // Update chat metadata
             await set(ref(rtdb, `chats/${chatId}/metadata`), {
                 participants: [user.uid, selectedUser.uid],
                 lastMessage: newMessage || "Image",
                 lastMessageTimestamp: Date.now(),
             });
 
-            // Build message object
             const messageData: any = {
                 senderId: user.uid,
                 receiverId: selectedUser.uid,
@@ -177,7 +253,6 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 read: false,
             };
 
-            // Add reply data if replying
             if (replyingTo) {
                 messageData.replyTo = {
                     id: replyingTo.id,
@@ -186,7 +261,6 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 };
             }
 
-            // Add message
             const messagesRef = ref(rtdb, `chats/${chatId}/messages`);
             await push(messagesRef, messageData);
 
@@ -221,11 +295,15 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 </div>
                 <div>
                     <h3 className="font-medium text-gray-900">{selectedUser.displayName}</h3>
-                    {selectedUser.lastSeen && (
+                    {isOtherTyping ? (
+                        <p className="text-xs text-green-600 font-medium animate-pulse">
+                            typing...
+                        </p>
+                    ) : selectedUser.lastSeen ? (
                         <p className="text-xs text-gray-500">
                             Last seen {new Date(selectedUser.lastSeen).toLocaleTimeString()}
                         </p>
-                    )}
+                    ) : null}
                 </div>
             </div>
 
@@ -320,7 +398,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                         ref={inputRef}
                         type="text"
                         value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
+                        onChange={handleInputChange}
                         placeholder={replyingTo ? "Type your reply..." : "Type a message"}
                         className="flex-1 rounded-full border border-gray-300 bg-white text-gray-900 placeholder-gray-500 px-4 py-2 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
                     />
