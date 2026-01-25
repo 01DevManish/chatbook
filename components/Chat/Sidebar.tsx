@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ref, onValue } from "firebase/database";
-import { rtdb, auth } from "@/lib/firebase";
+import { ref, onValue, update } from "firebase/database";
+import { rtdb, auth, storage, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
-import { LogOut, User as UserIcon, RefreshCw, Search, MoreVertical } from "lucide-react";
+import { LogOut, User as UserIcon, RefreshCw, Search, MoreVertical, Camera } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { updateProfile } from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore";
+import { useRef } from "react"; // Added missing import
 
 interface UserData {
     uid: string;
@@ -26,6 +30,9 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
     const [users, setUsers] = useState<UserData[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [uploading, setUploading] = useState(false);
+    const [typingUsers, setTypingUsers] = useState<Record<string, boolean>>({});
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
     // Fetch ALL users from Realtime Database
@@ -57,7 +64,76 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
         });
 
         return () => unsubscribe();
+        return () => unsubscribe();
     }, [user]);
+
+    // Listen for typing status from ALL chats I'm involved in
+    useEffect(() => {
+        if (!user || users.length === 0) return;
+
+        const typingStatus: Record<string, boolean> = {};
+        const unsubscribes: (() => void)[] = [];
+
+        users.forEach(otherUser => {
+            const chatId = [user.uid, otherUser.uid].sort().join("_");
+            const typingRef = ref(rtdb, `chats/${chatId}/typing/${otherUser.uid}`);
+
+            const unsub = onValue(typingRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    if (data.timestamp && Date.now() - data.timestamp < 5000) {
+                        setTypingUsers(prev => ({ ...prev, [otherUser.uid]: true }));
+                    } else {
+                        setTypingUsers(prev => ({ ...prev, [otherUser.uid]: false }));
+                    }
+                } else {
+                    setTypingUsers(prev => ({ ...prev, [otherUser.uid]: false }));
+                }
+            });
+            unsubscribes.push(unsub);
+        });
+
+        return () => {
+            unsubscribes.forEach(unsub => unsub());
+        };
+    }, [users, user]);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0] && user) {
+            const file = e.target.files[0];
+            setUploading(true);
+
+            try {
+                const imageRef = storageRef(storage, `profile_images/${user.uid}`);
+                await uploadBytes(imageRef, file);
+                const downloadURL = await getDownloadURL(imageRef);
+
+                // Update Auth Profile
+                await updateProfile(user, { photoURL: downloadURL });
+
+                // Update Firestore User Document
+                await updateDoc(doc(db, "users", user.uid), {
+                    photoURL: downloadURL
+                });
+
+                // Update Realtime Database User Node (since we fetch users from here)
+                await update(ref(rtdb, `users/${user.uid}`), {
+                    photoURL: downloadURL
+                });
+
+                // Start Notification
+                if (Notification.permission === "granted") {
+                    new Notification("Profile Updated", { body: "Your profile photo has been updated successfully!" });
+                }
+
+            } catch (error) {
+                console.error("Error uploading image:", error);
+                alert("Failed to upload image. Please try again.");
+            } finally {
+                setUploading(false);
+            }
+        }
+    };
 
     const handleLogout = async () => {
         await auth.signOut();
@@ -81,6 +157,26 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                         ) : (
                             <UserIcon size={24} className="text-[#cfd8dc]" />
                         )}
+                        {uploading && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <RefreshCw className="animate-spin text-white" size={16} />
+                            </div>
+                        )}
+                        {!uploading && (
+                            <div
+                                onClick={() => fileInputRef.current?.click()}
+                                className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity"
+                            >
+                                <Camera className="text-white" size={20} />
+                            </div>
+                        )}
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                        />
                     </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -160,9 +256,15 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                                         {/* Time placeholder */}
                                     </span>
                                 </div>
-                                <p className="text-sm text-[#8696a0] truncate mt-0.5">
-                                    {otherUser.email}
-                                </p>
+                                {typingUsers[otherUser.uid] ? (
+                                    <p className="text-sm text-[#25d366] font-medium mt-0.5 truncate">
+                                        typing...
+                                    </p>
+                                ) : (
+                                    <p className="text-sm text-[#8696a0] truncate mt-0.5">
+                                        {otherUser.email}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     ))
