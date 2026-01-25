@@ -140,10 +140,33 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
         }, 100);
     };
 
+    const scrollToMessage = (messageId: string) => {
+        const element = document.getElementById(`message-${messageId}`);
+        if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "center" });
+            // Optional: Highlight effect
+            element.classList.add("bg-[#2a3942]");
+            setTimeout(() => {
+                element.classList.remove("bg-[#2a3942]");
+            }, 1000);
+        }
+    };
+
     // Scroll to bottom when messages change
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    // Handle mobile keyboard open/resize
+    useEffect(() => {
+        if (window.visualViewport) {
+            const handleResize = () => {
+                scrollToBottom();
+            };
+            window.visualViewport.addEventListener('resize', handleResize);
+            return () => window.visualViewport?.removeEventListener('resize', handleResize);
+        }
+    }, []);
 
     // Update typing status
     const updateTypingStatus = useCallback((isTyping: boolean) => {
@@ -337,6 +360,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                                 message={msg}
                                 onReply={handleReply}
                                 getReplyName={getReplyPreviewName}
+                                onReplyClick={scrollToMessage}
                             />
                         ))}
                     </div>
