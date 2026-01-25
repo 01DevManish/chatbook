@@ -5,7 +5,7 @@ import { ref, onValue } from "firebase/database";
 import { rtdb, auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
-import { LogOut, User as UserIcon, RefreshCw } from "lucide-react";
+import { LogOut, User as UserIcon, RefreshCw, Search, MoreVertical } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface UserData {
@@ -25,39 +25,29 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
     const { user } = useAuth();
     const [users, setUsers] = useState<UserData[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
     const router = useRouter();
 
     // Fetch ALL users from Realtime Database
     useEffect(() => {
         if (!user) {
-            console.log("No current user, skipping fetch");
             setLoading(false);
             return;
         }
 
-        console.log("Current user UID:", user.uid);
-        console.log("Fetching users from Realtime Database...");
-
         const usersRef = ref(rtdb, "users");
 
         const unsubscribe = onValue(usersRef, (snapshot) => {
-            console.log("Snapshot received! Exists:", snapshot.exists());
-
             if (snapshot.exists()) {
                 const data = snapshot.val();
-                console.log("Raw data:", data);
-
                 const userList: UserData[] = Object.keys(data)
                     .map((key) => ({
                         uid: key,
                         ...data[key]
                     }))
                     .filter((u) => u.uid !== user.uid);
-
-                console.log("Filtered user list (excluding self):", userList.length);
                 setUsers(userList);
             } else {
-                console.log("No users found in database");
                 setUsers([]);
             }
             setLoading(false);
@@ -74,54 +64,79 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
         router.push("/login");
     };
 
+    // Filter users based on search
+    const filteredUsers = users.filter((u) =>
+        u.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     return (
-        <div className="flex h-full w-full flex-col border-r bg-white md:w-80">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b p-4 bg-gray-50">
+        <div className="flex h-full w-full flex-col bg-[#111b21]">
+            {/* Header - WhatsApp Style */}
+            <div className="flex items-center justify-between px-4 py-3 bg-[#202c33]">
                 <div className="flex items-center space-x-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-300 text-gray-600 overflow-hidden">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden cursor-pointer">
                         {user?.photoURL ? (
                             <img src={user.photoURL} alt="Profile" className="h-full w-full object-cover" />
                         ) : (
-                            <UserIcon size={24} />
+                            <UserIcon size={24} className="text-[#cfd8dc]" />
                         )}
                     </div>
-                    <span className="font-semibold text-gray-800 truncate max-w-[120px]">
-                        {user?.displayName || "Me"}
-                    </span>
                 </div>
-                <button
-                    onClick={handleLogout}
-                    className="rounded-full p-2 text-gray-500 hover:bg-gray-200"
-                    title="Logout"
-                >
-                    <LogOut size={20} />
-                </button>
+                <div className="flex items-center space-x-2">
+                    <button
+                        onClick={handleLogout}
+                        className="rounded-full p-2 text-[#aebac1] hover:bg-[#374248] transition-colors"
+                        title="Logout"
+                    >
+                        <LogOut size={20} />
+                    </button>
+                    <button className="rounded-full p-2 text-[#aebac1] hover:bg-[#374248] transition-colors">
+                        <MoreVertical size={20} />
+                    </button>
+                </div>
+            </div>
+
+            {/* Search Bar */}
+            <div className="px-3 py-2 bg-[#111b21]">
+                <div className="flex items-center bg-[#202c33] rounded-lg px-4 py-2">
+                    <Search size={18} className="text-[#8696a0] mr-4" />
+                    <input
+                        type="text"
+                        placeholder="Search or start new chat"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="flex-1 bg-transparent text-[#e9edef] placeholder-[#8696a0] text-sm outline-none"
+                    />
+                </div>
             </div>
 
             {/* User List */}
             <div className="flex-1 overflow-y-auto">
                 {loading ? (
                     <div className="flex items-center justify-center h-40">
-                        <RefreshCw className="animate-spin text-gray-400" size={24} />
+                        <RefreshCw className="animate-spin text-[#8696a0]" size={24} />
                     </div>
-                ) : users.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-40 text-gray-500 p-4 text-center">
+                ) : filteredUsers.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-40 text-[#8696a0] p-4 text-center">
                         <UserIcon size={32} className="mb-2 opacity-50" />
-                        <p>No other users yet.</p>
-                        <p className="text-xs mt-1">Ask a friend to sign up!</p>
+                        <p>{searchQuery ? "No users found" : "No other users yet."}</p>
+                        <p className="text-xs mt-1">
+                            {searchQuery ? "Try a different search" : "Ask a friend to sign up!"}
+                        </p>
                     </div>
                 ) : (
-                    users.map((otherUser) => (
+                    filteredUsers.map((otherUser) => (
                         <div
                             key={otherUser.uid}
                             onClick={() => onSelectUser(otherUser)}
                             className={cn(
-                                "flex cursor-pointer items-center space-x-3 border-b p-4 transition-colors hover:bg-gray-50",
-                                selectedUser?.uid === otherUser.uid && "bg-gray-100"
+                                "flex cursor-pointer items-center px-3 py-3 transition-colors hover:bg-[#202c33] border-b border-[#222d34]",
+                                selectedUser?.uid === otherUser.uid && "bg-[#2a3942]"
                             )}
                         >
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 text-gray-500 overflow-hidden">
+                            {/* Avatar */}
+                            <div className="flex-shrink-0 flex h-12 w-12 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden mr-3">
                                 {otherUser.photoURL ? (
                                     <img
                                         src={otherUser.photoURL}
@@ -129,16 +144,23 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                                         className="h-full w-full object-cover"
                                     />
                                 ) : (
-                                    <span className="text-lg font-semibold">
+                                    <span className="text-lg font-medium text-[#cfd8dc]">
                                         {otherUser.displayName?.[0]?.toUpperCase() || "?"}
                                     </span>
                                 )}
                             </div>
+
+                            {/* User Info */}
                             <div className="flex-1 min-w-0">
-                                <h3 className="font-medium text-gray-900 truncate">
-                                    {otherUser.displayName || "Unknown"}
-                                </h3>
-                                <p className="text-sm text-gray-500 truncate">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-medium text-[#e9edef] truncate text-base">
+                                        {otherUser.displayName || "Unknown"}
+                                    </h3>
+                                    <span className="text-xs text-[#8696a0] ml-2 flex-shrink-0">
+                                        {/* Time placeholder */}
+                                    </span>
+                                </div>
+                                <p className="text-sm text-[#8696a0] truncate mt-0.5">
                                     {otherUser.email}
                                 </p>
                             </div>

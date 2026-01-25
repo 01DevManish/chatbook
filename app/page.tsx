@@ -29,8 +29,11 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-500 border-t-transparent"></div>
+      <div className="flex h-screen h-[100dvh] items-center justify-center bg-gray-100">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-green-500 border-t-transparent"></div>
+          <p className="text-gray-500 text-sm">Loading Chatbook...</p>
+        </div>
       </div>
     );
   }
@@ -38,45 +41,72 @@ export default function HomePage() {
   if (!user) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100">
-      {/* Sidebar - Hidden on mobile if chat is open */}
-      <div
-        className={cn(
-          "w-full md:w-80 flex-shrink-0 bg-white transition-all duration-300",
-          selectedUser ? "hidden md:flex" : "flex"
-        )}
-      >
-        <Sidebar
-          selectedUser={selectedUser}
-          onSelectUser={setSelectedUser}
-        />
-      </div>
+    <div className="flex h-screen h-[100dvh] overflow-hidden bg-[#111b21]">
+      {/* Container with max width for large screens */}
+      <div className="flex w-full max-w-[1600px] mx-auto shadow-2xl">
 
-      {/* Chat Window - Hidden on mobile if no chat selected */}
-      <div
-        className={cn(
-          "flex-1 flex-col bg-gray-200 transition-all duration-300",
-          selectedUser ? "flex" : "hidden md:flex"
-        )}
-      >
-        {selectedUser ? (
-          <ChatWindow
+        {/* Sidebar - WhatsApp style */}
+        <div
+          className={cn(
+            "flex-shrink-0 bg-[#111b21] border-r border-[#2a3942] transition-all duration-200 ease-in-out",
+            // Mobile: full width, hidden when chat open
+            "w-full",
+            // Tablet: 320px width
+            "sm:w-[320px]",
+            // Desktop: 400px width  
+            "lg:w-[400px]",
+            // Hide on mobile when chat is selected
+            selectedUser ? "hidden sm:flex" : "flex"
+          )}
+        >
+          <Sidebar
             selectedUser={selectedUser}
-            onBack={() => setSelectedUser(null)}
+            onSelectUser={setSelectedUser}
           />
-        ) : (
-          <div className="hidden h-full flex-col items-center justify-center text-center text-gray-500 md:flex">
-            <div className="mb-4 rounded-full bg-gray-300 p-6">
-              <span className="text-4xl">💬</span>
+        </div>
+
+        {/* Chat Window - WhatsApp style */}
+        <div
+          className={cn(
+            "flex-1 flex-col bg-[#0b141a] min-w-0 transition-all duration-200 ease-in-out",
+            // Show/hide based on selection
+            selectedUser ? "flex" : "hidden sm:flex"
+          )}
+        >
+          {selectedUser ? (
+            <ChatWindow
+              selectedUser={selectedUser}
+              onBack={() => setSelectedUser(null)}
+            />
+          ) : (
+            <div className="hidden h-full flex-col items-center justify-center text-center sm:flex bg-[#222e35]">
+              {/* WhatsApp-style empty state */}
+              <div className="max-w-md px-8">
+                <div className="mb-6 flex justify-center">
+                  <img
+                    src="/logo.png"
+                    alt="Chatbook"
+                    className="w-24 h-24 opacity-80"
+                  />
+                </div>
+                <h2 className="text-2xl font-light text-[#e9edef] mb-3">
+                  Chatbook Web
+                </h2>
+                <p className="text-sm text-[#8696a0] leading-relaxed">
+                  Send and receive messages without keeping your phone online.
+                  <br />
+                  Use Chatbook on up to 4 linked devices and 1 phone at the same time.
+                </p>
+                <div className="mt-8 pt-6 border-t border-[#2a3942]">
+                  <p className="text-xs text-[#667781] flex items-center justify-center gap-2">
+                    <span className="inline-block w-4 h-4">🔒</span>
+                    End-to-end encrypted
+                  </p>
+                </div>
+              </div>
             </div>
-            <h2 className="text-xl font-semibold text-gray-700">
-              Welcome to Chatbook
-            </h2>
-            <p className="mt-2 text-sm">
-              Select a chat to start messaging
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

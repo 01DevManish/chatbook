@@ -280,35 +280,43 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     };
 
     return (
-        <div className="flex h-full flex-col bg-[#e5ded8]">
-            {/* Header */}
-            <div className="flex items-center space-x-3 bg-gray-50 p-3 border-b shadow-sm z-10">
-                <button onClick={onBack} className="md:hidden text-gray-600">
+        <div className="flex h-full flex-col bg-[#0b141a]">
+            {/* Header - WhatsApp Style */}
+            <div className="flex items-center space-x-3 bg-[#202c33] px-4 py-2 z-10">
+                <button onClick={onBack} className="sm:hidden text-[#aebac1] p-1 -ml-2">
                     <ArrowLeft size={24} />
                 </button>
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-300 text-gray-600 overflow-hidden">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden flex-shrink-0">
                     {selectedUser.photoURL ? (
                         <img src={selectedUser.photoURL} alt={selectedUser.displayName} className="h-full w-full object-cover" />
                     ) : (
-                        <span className="font-bold">{selectedUser.displayName?.[0]?.toUpperCase()}</span>
+                        <span className="font-medium text-[#cfd8dc] text-lg">{selectedUser.displayName?.[0]?.toUpperCase()}</span>
                     )}
                 </div>
-                <div>
-                    <h3 className="font-medium text-gray-900">{selectedUser.displayName}</h3>
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-[#e9edef] truncate">{selectedUser.displayName}</h3>
                     {isOtherTyping ? (
-                        <p className="text-xs text-green-600 font-medium animate-pulse">
+                        <p className="text-xs text-[#25d366] font-medium">
                             typing...
                         </p>
                     ) : selectedUser.lastSeen ? (
-                        <p className="text-xs text-gray-500">
-                            Last seen {new Date(selectedUser.lastSeen).toLocaleTimeString()}
+                        <p className="text-xs text-[#8696a0]">
+                            last seen {new Date(selectedUser.lastSeen).toLocaleTimeString()}
                         </p>
-                    ) : null}
+                    ) : (
+                        <p className="text-xs text-[#8696a0]">online</p>
+                    )}
                 </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat">
+            {/* Messages - WhatsApp Dark Pattern */}
+            <div
+                className="flex-1 overflow-y-auto px-4 py-2 sm:px-6 lg:px-12 space-y-1"
+                style={{
+                    backgroundColor: '#0b141a',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23182229' fill-opacity='0.6'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                }}
+            >
                 {messages.map((msg) => (
                     <MessageBubble
                         key={msg.id}
@@ -320,52 +328,52 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Reply Preview */}
+            {/* Reply Preview - WhatsApp Style */}
             {replyingTo && (
-                <div className="bg-gray-100 border-l-4 border-green-500 px-4 py-2 flex items-center justify-between">
+                <div className="bg-[#1f2c33] border-l-4 border-[#25d366] px-4 py-2 flex items-center justify-between">
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
+                        <div className="flex items-center gap-2 text-sm text-[#25d366] font-medium">
                             <Reply size={14} />
                             Replying to {getReplyPreviewName(replyingTo.senderId)}
                         </div>
-                        <p className="text-sm text-gray-600 truncate">
+                        <p className="text-sm text-[#8696a0] truncate">
                             {replyingTo.text || (replyingTo.image ? "📷 Image" : "")}
                         </p>
                     </div>
-                    <button onClick={cancelReply} className="text-gray-500 hover:text-gray-700 p-1">
+                    <button onClick={cancelReply} className="text-[#8696a0] hover:text-[#e9edef] p-1">
                         <X size={20} />
                     </button>
                 </div>
             )}
 
-            {/* Emoji Picker */}
+            {/* Emoji Picker - Dark Theme */}
             {showEmojiPicker && (
                 <div ref={emojiPickerRef} className="absolute bottom-20 left-4 z-50">
                     <EmojiPicker
                         onEmojiClick={handleEmojiClick}
-                        theme={Theme.LIGHT}
+                        theme={Theme.DARK}
                         width={320}
-                        height={400}
+                        height={350}
                         searchPlaceholder="Search emoji..."
                         previewConfig={{ showPreview: false }}
                     />
                 </div>
             )}
 
-            {/* Input */}
-            <div className="bg-gray-50 p-3 relative">
+            {/* Input - WhatsApp Style */}
+            <div className="bg-[#202c33] px-4 py-3 relative">
                 {image && (
-                    <div className="mb-2 relative inline-block">
-                        <img src={image} alt="Preview" className="h-20 rounded-md border" />
+                    <div className="mb-3 relative inline-block">
+                        <img src={image} alt="Preview" className="h-20 rounded-lg border border-[#2a3942]" />
                         <button
                             onClick={() => setImage(null)}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 text-xs"
+                            className="absolute -top-2 -right-2 bg-[#ea4335] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold"
                         >
-                            X
+                            ✕
                         </button>
                     </div>
                 )}
-                <form onSubmit={handleSend} className="flex items-center space-x-2">
+                <form onSubmit={handleSend} className="flex items-center gap-2">
                     <input
                         type="file"
                         accept="image/*"
@@ -378,7 +386,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                     <button
                         type="button"
                         onClick={toggleEmojiPicker}
-                        className={`p-2 rounded-full transition-colors ${showEmojiPicker ? 'bg-green-100 text-green-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
+                        className={`p-2 rounded-full transition-colors flex-shrink-0 ${showEmojiPicker ? 'text-[#25d366]' : 'text-[#8696a0] hover:text-[#e9edef]'}`}
                         title="Emoji"
                     >
                         <Smile size={24} />
@@ -388,24 +396,27 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                     <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 p-2 rounded-full transition-colors"
+                        className="text-[#8696a0] hover:text-[#e9edef] p-2 rounded-full transition-colors flex-shrink-0"
                         title="Attach Image"
                     >
                         <ImageIcon size={24} />
                     </button>
 
+                    {/* Input Field */}
                     <input
                         ref={inputRef}
                         type="text"
                         value={newMessage}
                         onChange={handleInputChange}
                         placeholder={replyingTo ? "Type your reply..." : "Type a message"}
-                        className="flex-1 rounded-full border border-gray-300 bg-white text-gray-900 placeholder-gray-500 px-4 py-2 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
+                        className="flex-1 min-w-0 rounded-lg bg-[#2a3942] text-[#e9edef] placeholder-[#8696a0] px-4 py-2.5 text-sm focus:outline-none"
                     />
+
+                    {/* Send Button */}
                     <button
                         type="submit"
                         disabled={sending || (!newMessage && !image)}
-                        className="rounded-full bg-green-600 p-2 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+                        className="rounded-full bg-[#00a884] p-2.5 text-[#111b21] hover:bg-[#06cf9c] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                     >
                         <Send size={20} />
                     </button>
