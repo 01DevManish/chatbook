@@ -118,7 +118,7 @@ export default function CallModal() {
 
                         {/* Local Video (Draggable/Floating) */}
                         {callType === 'video' && (
-                            <div className="absolute right-4 top-4 w-32 h-48 bg-black rounded-lg shadow-2xl overflow-hidden border border-gray-700/50 z-20">
+                            <div className="absolute right-4 top-4 w-24 h-36 sm:w-32 sm:h-48 bg-black rounded-lg shadow-2xl overflow-hidden border border-gray-700/50 z-20">
                                 <video
                                     ref={localVideoRef}
                                     autoPlay

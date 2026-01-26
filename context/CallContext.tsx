@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { ZegoExpressEngine } from "zego-express-engine-webrtc";
+import type { ZegoExpressEngine } from "zego-express-engine-webrtc";
 import { ref, onValue, set, remove, serverTimestamp } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
 
@@ -47,30 +47,24 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
     // Initialize Zego
     useEffect(() => {
         if (typeof window !== "undefined" && !zgRef.current) {
-            const zg = new ZegoExpressEngine(APP_ID, SERVER_SECRET);
-            zgRef.current = zg;
+            import("zego-express-engine-webrtc").then(({ ZegoExpressEngine }) => {
+                const zg = new ZegoExpressEngine(APP_ID, SERVER_SECRET);
+                zgRef.current = zg;
 
-            zg.on('roomStreamUpdate', async (roomID, updateType, streamList) => {
-                console.log('roomStreamUpdate', updateType, streamList);
-                if (updateType === 'ADD') {
-                    const streamID = streamList[0].streamID;
-                    const rStream = await zg.startPlayingStream(streamID);
-                    setRemoteStream(rStream);
-                } else if (updateType === 'DELETE') {
-                    setRemoteStream(null);
-                    // If remote stream deleted, usually means they left. End call?
-                    // Not necessarily, could be just camera off. 
-                    // But for simple 1-on-1, typically yes.
-                    // Better relies on signaling or user status flow.
-                }
-            });
+                zg.on('roomStreamUpdate', async (roomID, updateType, streamList) => {
+                    console.log('roomStreamUpdate', updateType, streamList);
+                    if (updateType === 'ADD') {
+                        const streamID = streamList[0].streamID;
+                        const rStream = await zg.startPlayingStream(streamID);
+                        setRemoteStream(rStream);
+                    } else if (updateType === 'DELETE') {
+                        setRemoteStream(null);
+                    }
+                });
 
-            zg.on('roomStateUpdate', (roomID, state, errorCode, extendedData) => {
-                console.log('roomStateUpdate', state, errorCode);
-                if (state === 'DISCONNECTED') {
-                    // Handle disconnected
-                    // If unexpected disconnect, clean up
-                }
+                zg.on('roomStateUpdate', (roomID, state, errorCode, extendedData) => {
+                    console.log('roomStateUpdate', state, errorCode);
+                });
             });
         }
     }, []);

@@ -51,10 +51,10 @@ export default function HomePage() {
             "flex-shrink-0 bg-[#111b21] border-r border-[#2a3942] transition-all duration-200 ease-in-out",
             // Mobile: full width, hidden when chat open
             "w-full",
-            // Tablet: 320px width
-            "sm:w-[320px]",
-            // Desktop: 400px width  
-            "lg:w-[400px]",
+            // Tablet: Fixed width, slightly wider for better read
+            "sm:w-[360px]",
+            // Desktop: Fluid width, max 450px for premium feel
+            "lg:w-[400px] xl:w-[30%] xl:max-w-[450px]",
             // Hide on mobile when chat is selected
             selectedUser ? "hidden sm:flex" : "flex"
           )}

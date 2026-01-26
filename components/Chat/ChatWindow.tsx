@@ -439,11 +439,14 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     return (
         <div className="flex flex-col h-[100dvh] bg-[#0b141a] overflow-hidden relative">
             {/* Header - WhatsApp Style - Fixed */}
-            <div className="flex-shrink-0 flex items-center space-x-3 bg-[#202c33] px-4 py-2.5 z-50">
-                <button onClick={onBack} className="sm:hidden text-[#aebac1] p-1 -ml-2 active:bg-[#374248] rounded-full">
+            <div className="flex-shrink-0 flex items-center space-x-3 bg-[#202c33] px-3 py-3 sm:px-4 sm:py-3 z-50 border-b border-[#2a3942]/50 shadow-sm">
+                <button
+                    onClick={onBack}
+                    className="sm:hidden text-[#e9edef] p-2 -ml-2 active:bg-[#374248] rounded-full transition-colors"
+                >
                     <ArrowLeft size={24} />
                 </button>
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden flex-shrink-0">
+                <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden flex-shrink-0">
                     {selectedUser.photoURL ? (
                         <img src={selectedUser.photoURL} alt={selectedUser.displayName} className="h-full w-full object-cover" />
                     ) : (
