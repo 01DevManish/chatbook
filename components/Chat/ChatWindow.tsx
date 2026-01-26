@@ -668,20 +668,52 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                                 </span>
                             </div>
                         )}
-                        {visibleMessages.map((msg) => (
-                            <MessageBubble
-                                key={msg.id}
-                                message={msg}
-                                onReply={handleReply}
-                                getReplyName={getReplyPreviewName}
-                                onReplyClick={scrollToMessage}
-                                onImageClick={(src) => setViewingImage(src)}
-                                onDelete={handleDeleteMessage}
-                                onEdit={handleEditMessage}
-                                onForward={handleForwardMessage}
-                                onReact={handleReactToMessage}
-                            />
-                        ))}
+                        {visibleMessages.map((msg, index) => {
+                            // Date Separator Logic
+                            const msgDate = new Date(msg.timestamp);
+                            const prevMsg = index > 0 ? visibleMessages[index - 1] : null;
+                            const prevDate = prevMsg ? new Date(prevMsg.timestamp) : null;
+
+                            const showDateSeparator = !prevDate ||
+                                msgDate.toDateString() !== prevDate.toDateString();
+
+                            const getDateLabel = (date: Date) => {
+                                const today = new Date();
+                                const yesterday = new Date(today);
+                                yesterday.setDate(yesterday.getDate() - 1);
+
+                                if (date.toDateString() === today.toDateString()) return "Today";
+                                if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+                                return date.toLocaleDateString("en-IN", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: msgDate.getFullYear() !== today.getFullYear() ? "numeric" : undefined
+                                });
+                            };
+
+                            return (
+                                <div key={msg.id}>
+                                    {showDateSeparator && (
+                                        <div className="flex justify-center py-2 my-2">
+                                            <span className="bg-[#182229] text-[#8696a0] text-[11px] px-3 py-1 rounded-lg shadow-sm uppercase tracking-wide">
+                                                {getDateLabel(msgDate)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <MessageBubble
+                                        message={msg}
+                                        onReply={handleReply}
+                                        getReplyName={getReplyPreviewName}
+                                        onReplyClick={scrollToMessage}
+                                        onImageClick={(src) => setViewingImage(src)}
+                                        onDelete={handleDeleteMessage}
+                                        onEdit={handleEditMessage}
+                                        onForward={handleForwardMessage}
+                                        onReact={handleReactToMessage}
+                                    />
+                                </div>
+                            );
+                        })}
                     </div>
                     <div ref={messagesEndRef} className="h-2" />
                 </div>
@@ -742,20 +774,22 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 )
             }
 
-            {/* Input - WhatsApp Style - Fixed at Bottom */}
-            <div className="flex-shrink-0 bg-[#202c33] px-2 py-2 sm:px-4 sm:py-3 z-50 w-full mb-[env(safe-area-inset-bottom)]">
+            {/* Input - WhatsApp Style - Sticky Bottom */}
+            <div className="flex-shrink-0 bg-[#202c33] px-2 py-1.5 sm:px-3 sm:py-2">
+                {/* Image Preview */}
                 {image && (
-                    <div className="mb-3 relative inline-block mx-2">
-                        <img src={image || undefined} alt="Preview" className="h-20 rounded-lg border border-[#2a3942]" />
+                    <div className="mb-2 relative inline-block ml-2">
+                        <img src={image || undefined} alt="Preview" className="h-16 rounded-lg border border-[#2a3942]" />
                         <button
-                            onClick={() => setImage(null)}
-                            className="absolute -top-2 -right-2 bg-[#ea4335] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold"
+                            onClick={() => { setImage(null); setSelectedFile(null); }}
+                            className="absolute -top-1.5 -right-1.5 bg-[#ea4335] text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-lg"
                         >
                             ✕
                         </button>
                     </div>
                 )}
-                <form onSubmit={handleSend} className="flex items-end gap-2 max-w-screen-2xl mx-auto">
+
+                <form onSubmit={handleSend} className="flex items-center gap-1.5">
                     <input
                         type="file"
                         accept="image/*"
@@ -764,48 +798,45 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                         onChange={handleImageSelect}
                     />
 
-                    {/* Left Icons Group */}
-                    <div className="flex items-center pb-2">
+                    {/* Main Input Container - WhatsApp Style */}
+                    <div className="flex-1 flex items-center bg-[#2a3942] rounded-full min-h-[44px] px-2">
+                        {/* Emoji Button */}
                         <button
                             type="button"
                             onClick={toggleEmojiPicker}
-                            className={`p-2 rounded-full transition-colors ${showEmojiPicker ? 'text-[#00a884]' : 'text-[#8696a0] hover:text-[#e9edef]'}`}
-                            title="Emoji"
+                            className={`p-2 rounded-full transition-colors flex-shrink-0 ${showEmojiPicker ? 'text-[#00a884]' : 'text-[#8696a0]'}`}
                         >
-                            <Smile size={24} />
+                            <Smile size={22} />
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="text-[#8696a0] hover:text-[#e9edef] p-2 rounded-full transition-colors"
-                            title="Attach Image"
-                        >
-                            <ImageIcon size={24} />
-                        </button>
-                    </div>
 
-                    {/* Input Field */}
-                    <div className="flex-1 min-w-0 bg-[#2a3942] rounded-2xl flex items-center min-h-[42px] py-1 px-4 mb-1">
+                        {/* Text Input */}
                         <input
                             ref={inputRef}
                             type="text"
                             value={newMessage}
                             onChange={handleInputChange}
-                            placeholder={replyingTo ? "Type your reply..." : "Message"}
-                            className="w-full bg-transparent text-[#e9edef] placeholder-[#8696a0] text-[15px] focus:outline-none"
+                            placeholder={editingMessage ? "Edit message..." : replyingTo ? "Reply..." : "Message"}
+                            className="flex-1 bg-transparent text-[#e9edef] placeholder-[#8696a0] text-[15px] focus:outline-none py-2 px-1"
                         />
-                    </div>
 
-                    {/* Send Button */}
-                    <div className="pb-1">
+                        {/* Attachment Button */}
                         <button
-                            type="submit"
-                            disabled={sending || (!newMessage && !image)}
-                            className="rounded-full bg-[#00a884] p-3 text-[#111b21] hover:bg-[#06cf9c] disabled:opacity-40 disabled:scale-95 transition-all shadow-md items-center justify-center flex"
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="text-[#8696a0] p-2 rounded-full transition-colors flex-shrink-0"
                         >
-                            <Send size={20} className="ml-0.5" />
+                            <ImageIcon size={22} />
                         </button>
                     </div>
+
+                    {/* Send Button - WhatsApp Green Circle */}
+                    <button
+                        type="submit"
+                        disabled={sending || (!newMessage.trim() && !image)}
+                        className="flex-shrink-0 rounded-full bg-[#00a884] w-11 h-11 flex items-center justify-center text-[#111b21] hover:bg-[#06cf9c] disabled:opacity-40 transition-all shadow-md active:scale-95"
+                    >
+                        <Send size={20} className="ml-0.5" />
+                    </button>
                 </form>
             </div>
             {/* Pin Modal */}
