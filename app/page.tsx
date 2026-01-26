@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Chat/Sidebar";
@@ -15,9 +15,6 @@ interface UserData {
   username?: string;
   lastSeen?: number;
 }
-
-// ... imports ...
-import { Suspense } from "react";
 
 function HomeContent() {
   const { user, loading } = useAuth();
@@ -40,6 +37,21 @@ function HomeContent() {
       fetchUser();
     } else {
       setSelectedUser(null);
+    }
+  }, [selectedUserId]);
+
+  // History Buffer for "3 times back to exit"
+  useEffect(() => {
+    // Only apply buffer if we are at root and not in a chat
+    if (!selectedUserId && typeof window !== 'undefined') {
+      const hasBuffered = sessionStorage.getItem('history_buffered');
+      if (!hasBuffered) {
+        // Push current state twice to create a buffer
+        // This forces the user to press back multiple times to actually leave the domain
+        window.history.pushState(null, '', '/');
+        window.history.pushState(null, '', '/');
+        sessionStorage.setItem('history_buffered', 'true');
+      }
     }
   }, [selectedUserId]);
 
