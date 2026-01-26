@@ -547,9 +547,9 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     };
 
     return (
-        <div className="flex flex-col h-[100dvh] bg-[#0b141a] overflow-hidden">
-            {/* Header - WhatsApp Style - Fixed at Top */}
-            <header className="flex-shrink-0 flex items-center space-x-3 bg-[#202c33] px-3 py-3 sm:px-4 sm:py-3 z-50 border-b border-[#2a3942]/50 shadow-sm">
+        <div className="fixed inset-0 flex flex-col bg-[#0b141a]">
+            {/* Header - Fixed at Top */}
+            <header className="flex-shrink-0 flex items-center space-x-3 bg-[#202c33] px-3 py-2 sm:px-4 sm:py-3 z-50 border-b border-[#2a3942]/50 safe-area-top">
                 <button
                     onClick={onBack}
                     className="sm:hidden text-[#e9edef] p-2 -ml-2 active:bg-[#374248] rounded-full transition-colors"
@@ -777,8 +777,8 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 )
             }
 
-            {/* Input - WhatsApp Style - Sticky Bottom */}
-            <div className="flex-shrink-0 bg-[#202c33] px-2 py-1.5 sm:px-3 sm:py-2">
+            {/* Input - WhatsApp Style - Fixed Bottom */}
+            <div className="flex-shrink-0 bg-[#202c33] px-2 py-1.5 sm:px-3 sm:py-2 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
                 {/* Image Preview */}
                 {image && (
                     <div className="mb-2 relative inline-block ml-2">
