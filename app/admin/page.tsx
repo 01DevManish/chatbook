@@ -33,7 +33,7 @@ export default function AdminPage() {
         if (!loading) {
             if (!user) {
                 router.push("/login");
-            } else if (user.email !== "01devmaish@gmail.com") {
+            } else if (user.email !== "01devmanish@gmail.com") {
                 setIsAuthorized(false);
             }
         }
