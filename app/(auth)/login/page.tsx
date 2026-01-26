@@ -88,7 +88,7 @@ export default function LoginPage() {
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="you@example.com"
+                            placeholder="you@chatbook.com"
                         />
                         <Input
                             label="Password"
