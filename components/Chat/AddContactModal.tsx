@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ref, get, set } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/UI/Dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../UI/Dialog";
 import { Input } from "@/components/UI/Input";
 import { Button } from "@/components/UI/Button";
 import { Search, UserPlus, Check } from "lucide-react";
