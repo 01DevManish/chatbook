@@ -161,13 +161,13 @@ export default function MessageBubble({
                     <AnimatePresence>
                         {showMenu && (
                             <motion.div
-                                initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                                initial={{ opacity: 0, scale: 0.8, y: -10 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                                exit={{ opacity: 0, scale: 0.8, y: -10 }}
                                 transition={{ duration: 0.15 }}
                                 className={cn(
                                     "absolute z-50 bg-[#233138] rounded-xl shadow-2xl border border-[#2a3942] overflow-hidden",
-                                    isMe ? "right-0 top-full mt-2" : "left-0 top-full mt-2"
+                                    isMe ? "right-0 bottom-full mb-2" : "left-0 bottom-full mb-2"
                                 )}
                             >
                                 {/* Quick Reactions */}
