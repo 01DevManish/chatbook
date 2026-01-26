@@ -9,11 +9,9 @@ import { format } from "date-fns";
 interface Message {
     id: string;
     senderId: string;
-    text: string;
+    text?: string;
+    image?: string;
     timestamp: number;
-    type: "text" | "image" | "video" | "audio" | "file";
-    fileUrl?: string;
-    status?: "sent" | "delivered" | "read";
 }
 
 interface AdminChatWindowProps {
@@ -86,16 +84,12 @@ export default function AdminChatWindow({ chatId, user1, user2 }: AdminChatWindo
                                     {getSenderName(msg.senderId)}
                                 </div>
 
-                                {msg.type === "text" && (
+                                {msg.image && (
+                                    <img src={msg.image} alt="Image" className="rounded-lg max-h-60 max-w-full object-cover mt-1 mb-1" />
+                                )}
+
+                                {msg.text && (
                                     <p className="text-[#e9edef] whitespace-pre-wrap leading-relaxed">{msg.text}</p>
-                                )}
-
-                                {msg.type === "image" && (
-                                    <img src={msg.fileUrl} alt="Image" className="rounded-lg max-h-60 max-w-full object-cover mt-1" />
-                                )}
-
-                                {msg.type === "video" && (
-                                    <video src={msg.fileUrl} controls className="rounded-lg max-h-60 max-w-full mt-1" />
                                 )}
 
                                 <div className="text-[10px] text-[#8696a0] text-right mt-1 select-none">
