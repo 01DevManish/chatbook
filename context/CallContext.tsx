@@ -105,8 +105,48 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
 
+    // Helper: Check Permissions
+    const checkPermissions = async (type: 'audio' | 'video') => {
+        try {
+            const constraints = {
+                audio: true,
+                video: type === 'video'
+            };
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            // Stop tracks immediately, we just wanted to trigger permission prompt
+            stream.getTracks().forEach(track => track.stop());
+            return true;
+        } catch (err) {
+            console.error("Permission denied:", err);
+            alert("Microphone/Camera permission is required for calls.");
+            return false;
+        }
+    };
+
+    // Helper: Check Permissions
+    const checkPermissions = async (type: 'audio' | 'video') => {
+        try {
+            const constraints = {
+                audio: true,
+                video: type === 'video'
+            };
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            // Stop tracks immediately, we just wanted to trigger permission prompt
+            stream.getTracks().forEach(track => track.stop());
+            return true;
+        } catch (err) {
+            console.error("Permission denied:", err);
+            alert("Microphone/Camera permission is required for calls.");
+            return false;
+        }
+    };
+
     const startCall = async (targetUser: any, type: 'audio' | 'video') => {
         if (!user || !zgRef.current) return;
+
+        // 1. Check Permissions FIRST
+        const hasPerms = await checkPermissions(type);
+        if (!hasPerms) return;
 
         const newRoomId = `call_${user.uid}_${targetUser.uid}_${Date.now()}`;
         setRoomId(newRoomId);
@@ -115,44 +155,33 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
         setCaller(targetUser);
         activeCallRef.current = { roomId: newRoomId, role: 'caller' };
 
-        // 1. Initialize Zego Room
-        try { // Using raw secret as token for dev (check Zego docs if this is allowed for simple auth, otherwise need token gen)
-            // Actually Zego web sdk usually requires a token from server. 
-            // For "Quick Start" testing, sometimes AppID + Secret works if insecure mode enabled?
-            // The user provided snippet: "zg.loginRoom(roomID, token, ...)"
-            // I need a token generation logic. 
-            // I'll add a helper to generate test token locally if possible, or assume insecure fallback?
-            // Wait, Zego Web SDK v2 needs token.
-            // I'll implement a simple local token generator if checking `serverSecret` is passed to constructor? 
-            // No, constructor takes AppID & ServerURL usually? 
-            // Actually `zego-express-engine-webrtc` constructor: (appID, server) 
-            // Wait, previous snippet was `zg.loginRoom(roomID, token, ...)`
-            // If user provided ServerSecret, I should probably generate token on client (NOT SECURE for prod, but OK for this task).
-        } catch (e) { }
-
         // 2. Signal User B
-        await set(ref(rtdb, `users/${targetUser.uid}/incomingCall`), {
-            callerId: user.uid,
-            callerName: user.displayName || "User",
-            callerPhoto: user.photoURL || "",
-            type: type,
-            roomId: newRoomId,
-            timestamp: serverTimestamp()
-        });
-
-        // 3. Listen for acceptance (User B accepts -> they join room -> we detect stream or signal?)
-        // Better: Listen to a 'calls/{roomId}' status? Or just wait for them to answer.
-        // For simplicity: We wait for them to join Zego room OR we can add a 'status' field to the signaling.
-        // Let's add a listener for `users/{targetUser.uid}/callStatus`? 
-        // Or simpler: User B deletes `incomingCall` when picked up? No that cancels it.
-        // Standard pattern: 
-        // A writes `incomingCall`.
-        // B writes `users/{userId}/activeCall` = roomId ?
-
-        // Let's rely on Zego room logic. If B accepts, B joins room.
-        // But we need to know if B rejected.
-        // We can listen to `users/{user.uid}/callResponse` (created by B).
+        try {
+            await set(ref(rtdb, `users/${targetUser.uid}/incomingCall`), {
+                callerId: user.uid,
+                callerName: user.displayName || "User",
+                callerPhoto: user.photoURL || "",
+                type: type,
+                roomId: newRoomId,
+                timestamp: serverTimestamp()
+            });
+        } catch (e) {
+            console.error("Signal error:", e);
+        }
     };
+
+    // 3. Listen for acceptance (User B accepts -> they join room -> we detect stream or signal?)
+    // Better: Listen to a 'calls/{roomId}' status? Or just wait for them to answer.
+    // For simplicity: We wait for them to join Zego room OR we can add a 'status' field to the signaling.
+    // Let's add a listener for `users/{targetUser.uid}/callStatus`? 
+    // Or simpler: User B deletes `incomingCall` when picked up? No that cancels it.
+    // Standard pattern: 
+    // A writes `incomingCall`.
+    // B writes `users/{userId}/activeCall` = roomId ?
+
+    // Let's rely on Zego room logic. If B accepts, B joins room.
+    // But we need to know if B rejected.
+    // We can listen to `users/{user.uid}/callResponse` (created by B).
 
     // Listen for call response (acceptance/rejection)
     useEffect(() => {
