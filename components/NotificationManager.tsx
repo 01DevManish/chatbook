@@ -13,9 +13,11 @@ export default function NotificationManager() {
     useEffect(() => {
         if (!user) return;
 
-        // Request permission
-        if (Notification.permission === "default") {
-            Notification.requestPermission();
+        // Request permission - only on client side
+        if (typeof window !== "undefined" && "Notification" in window) {
+            if (Notification.permission === "default") {
+                Notification.requestPermission();
+            }
         }
 
         // We need to listen to all chats where the user is a participant.
@@ -72,13 +74,15 @@ export default function NotificationManager() {
                 if (
                     msg.receiverId === user.uid &&
                     !msg.read &&
-                    document.visibilityState === "hidden" // Only notify if app is in background/other tab OR we can check active chat
+                    typeof window !== "undefined" &&
+                    typeof document !== "undefined" &&
+                    document.visibilityState === "hidden" // Only notify if app is in background/other tab
                 ) {
                     // Check if we are NOT in the active chat window for this chat (simplified)
                     // Actually visibilityState hidden is good enough for "background" notifications.
                     // But user wants "notification aae" (notification should come).
 
-                    if (Notification.permission === "granted") {
+                    if ("Notification" in window && Notification.permission === "granted") {
                         new Notification("New Message", {
                             body: "❤️", // The heart emoji as requested
                             icon: "/logo.png", // Ensure this exists or use a default

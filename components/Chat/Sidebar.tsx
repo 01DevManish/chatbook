@@ -168,8 +168,8 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                     photoURL: downloadURL
                 });
 
-                // Start Notification
-                if (Notification.permission === "granted") {
+                // Start Notification - only on client side
+                if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
                     new Notification("Profile Updated", { body: "Your profile photo has been updated successfully!" });
                 }
 
