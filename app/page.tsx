@@ -16,39 +16,20 @@ interface UserData {
   lastSeen?: number;
 }
 
-export default function HomePage() {
+// ... imports ...
+import { Suspense } from "react";
+
+function HomeContent() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedUserId = searchParams.get('chat');
-
-  // We need to fetch/have access to the user list to hydrate selectedUser from ID
-  // But Sidebar handles fetching users. 
-  // Solution: Lift user state or fetch specific user if ID exists?
-  // Easier: Just pass the ID to Sidebar/ChatWindow and let them handle it?
-  // Or: Let's fetch the selected User Data if we have an ID but no object.
-  // Actually, standard pattern: Sidebar has the list. 
-  // Let's keep it simple: When Sidebar selects, we do router.push('?chat=uid').
-  // Then we need to know the UserData for that UID.
-  // We can fetch it or find it. 
-  // Let's modify Sidebar to take `selectedUserId` string instead of object.
-
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
 
   // Sync URL -> State
   useEffect(() => {
     if (selectedUserId) {
-      // We need to get the user data. 
-      // For now, if we don't have it, we might show loading or fetch it.
-      // Let's simple fetch it from RTDB if missing?
-      // Or wait for Sidebar to pass it back?
-      // Let's implement a direct fetch here to ensure deep linking works.
-      // Actually, just passing ID to ChatWindow is enough if ChatWindow fetches?
-      // No, ChatWindow expects object.
-      // Let's fetch it.
       const fetchUser = async () => {
-        // Import these dynamically or move imports up? 
-        // We need rtdb/ref/get
         const { ref, get } = await import("firebase/database");
         const { rtdb } = await import("@/lib/firebase");
         const snap = await get(ref(rtdb, `users/${selectedUserId}`));
@@ -63,14 +44,15 @@ export default function HomePage() {
   }, [selectedUserId]);
 
   const handleSelectUser = (u: UserData) => {
-    // Push state so back button works
-    router.push(`/?chat=${u.uid}`);
+    // Push state so back button works - force push
+    router.push(`/?chat=${u.uid}`, { scroll: false });
+    // Manually set state for immediate feedback
     setSelectedUser(u);
   };
 
   const handleBack = () => {
-    router.push('/');
-    setSelectedUser(null);
+    // Use router.back() to pop the history stack
+    router.back();
   };
 
   if (loading) {
@@ -155,5 +137,17 @@ export default function HomePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center bg-[#111b21] text-white">
+        Loading...
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
