@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ref, onValue, update } from "firebase/database";
+import { ref, onValue, update, get } from "firebase/database";
 import { rtdb, auth, storage, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -10,7 +10,9 @@ import { useRouter } from "next/navigation";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { updateProfile } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
-import { useRef } from "react"; // Added missing import
+import { useRef } from "react";
+import { UserPlus } from "lucide-react";
+import AddContactModal from "@/components/Chat/AddContactModal"; // Ensure import
 
 interface UserData {
     uid: string;
@@ -35,32 +37,41 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
-    // Fetch ALL users from Realtime Database
+    // Fetch Contacts ONLY from Realtime Database
     useEffect(() => {
         if (!user) {
             setLoading(false);
             return;
         }
 
-        const usersRef = ref(rtdb, "users");
+        const contactsRef = ref(rtdb, `users/${user.uid}/contacts`);
 
-        const unsubscribe = onValue(usersRef, (snapshot) => {
+        const unsubscribe = onValue(contactsRef, async (snapshot) => {
             if (snapshot.exists()) {
-                const data = snapshot.val();
-                const userList: UserData[] = Object.keys(data)
-                    .map((key) => ({
-                        uid: key,
-                        ...data[key]
-                    }))
-                    .filter((u) => u.uid !== user.uid);
-                setUsers(userList);
+                const contactsData = snapshot.val();
+                const contactIds = Object.keys(contactsData);
+
+                // Now fetch details for each contact
+                // In a real app, you might duplicate contact info to avoid N+1 fetches,
+                // or use a query. Here we'll fetch them individually (acceptable for small lists).
+                const loadedContacts: UserData[] = [];
+
+                for (const contactId of contactIds) {
+                    const userSnap = await get(ref(rtdb, `users/${contactId}`));
+                    if (userSnap.exists()) {
+                        loadedContacts.push({
+                            uid: contactId,
+                            ...userSnap.val()
+                        });
+                    }
+                }
+                setUsers(loadedContacts);
             } else {
                 setUsers([]);
             }
             setLoading(false);
-            setLoading(false);
         }, (error) => {
-            console.error("Error fetching users:", error);
+            console.error("Error fetching contacts:", error);
             setLoading(false);
         });
 
@@ -142,6 +153,7 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
 
     // Pull to Refresh Logic
     const [pullDiff, setPullDiff] = useState(0);
+    const [isAddContactOpen, setIsAddContactOpen] = useState(false);
     const touchStartY = useRef(0);
     const listRef = useRef<HTMLDivElement>(null);
 
@@ -210,6 +222,13 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                     </div>
                 </div>
                 <div className="flex items-center space-x-2">
+                    <button
+                        onClick={() => setIsAddContactOpen(true)}
+                        className="rounded-full p-2 text-[#aebac1] hover:bg-[#374248] transition-colors"
+                        title="New Chat"
+                    >
+                        <UserPlus size={20} />
+                    </button>
                     <button
                         onClick={handleLogout}
                         className="rounded-full p-2 text-[#aebac1] hover:bg-[#374248] transition-colors"
@@ -320,6 +339,11 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                     ))
                 )}
             </div>
+
+            <AddContactModal
+                isOpen={isAddContactOpen}
+                onClose={() => setIsAddContactOpen(false)}
+            />
         </div>
     );
 }
