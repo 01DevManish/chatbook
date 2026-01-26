@@ -140,6 +140,36 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
         router.push("/login");
     };
 
+    // Pull to Refresh Logic
+    const [pullDiff, setPullDiff] = useState(0);
+    const touchStartY = useRef(0);
+    const listRef = useRef<HTMLDivElement>(null);
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        if (listRef.current?.scrollTop === 0) {
+            touchStartY.current = e.touches[0].clientY;
+        }
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (listRef.current?.scrollTop === 0 && touchStartY.current) {
+            const currentY = e.touches[0].clientY;
+            const diff = currentY - touchStartY.current;
+            if (diff > 0) {
+                // e.preventDefault(); // Could be aggressive
+                setPullDiff(diff);
+            }
+        }
+    };
+
+    const handleTouchEnd = () => {
+        if (pullDiff > 120) { // Threshold to refresh
+            window.location.reload();
+        }
+        setPullDiff(0);
+        touchStartY.current = 0;
+    };
+
     // Filter users based on search
     const filteredUsers = users.filter((u) =>
         u.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -208,7 +238,27 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
             </div>
 
             {/* User List */}
-            <div className="flex-1 overflow-y-auto">
+            <div
+                className="flex-1 overflow-y-auto relative"
+                ref={listRef}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+            >
+                {/* Pull Indicator */}
+                <div
+                    className="flex justify-center overflow-hidden transition-all duration-200"
+                    style={{ height: pullDiff > 0 ? Math.min(pullDiff * 0.4, 80) : 0 }}
+                >
+                    <div className="flex items-center text-[#8696a0] p-2">
+                        {pullDiff > 120 ? (
+                            <RefreshCw className="animate-spin" size={24} />
+                        ) : (
+                            <span className="text-xs">Pull down to refresh</span>
+                        )}
+                    </div>
+                </div>
+
                 {loading ? (
                     <div className="flex items-center justify-center h-40">
                         <RefreshCw className="animate-spin text-[#8696a0]" size={24} />
