@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { ref, get, set, serverTimestamp } from "firebase/database";
+import { ref, get, set, serverTimestamp, onValue, onDisconnect } from "firebase/database";
 import { auth, rtdb } from "@/lib/firebase";
 
 interface AuthContextType {
@@ -58,6 +58,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         return () => unsubscribe();
     }, []);
+
+    // Presence System
+    useEffect(() => {
+        if (!user) return;
+
+        const connectedRef = ref(rtdb, ".info/connected");
+        const userStatusRef = ref(rtdb, `users/${user.uid}/status`);
+        const userLastSeenRef = ref(rtdb, `users/${user.uid}/lastSeen`);
+
+        const unsubscribe = onValue(connectedRef, (snap) => {
+            if (snap.val() === true) {
+                // We're connected (or reconnected)!
+
+                // 1. Set Disconnect Handlers FIRST
+                onDisconnect(userStatusRef).set("offline");
+                onDisconnect(userLastSeenRef).set(serverTimestamp());
+
+                // 2. Set Status to Online
+                set(userStatusRef, "online");
+            }
+        });
+
+        return () => unsubscribe();
+    }, [user]);
 
     return (
         <AuthContext.Provider value={{ user, loading }}>

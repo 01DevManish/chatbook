@@ -8,6 +8,9 @@ import MessageBubble from "./MessageBubble";
 import { Image as ImageIcon, Send, ArrowLeft, X, Reply, Smile, MoreVertical } from "lucide-react";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import PinModal from "@/components/UI/PinModal";
+import MediaGallery from "./MediaGallery";
+import ImageModal from "@/components/UI/ImageModal";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 interface UserData {
     uid: string;
@@ -43,6 +46,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState("");
     const [image, setImage] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [sending, setSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -50,6 +54,12 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     const [chatSettings, setChatSettings] = useState<{ lastClearedTimestamp?: number } | null>(null);
     const [showMenu, setShowMenu] = useState(false);
     const [showPinModal, setShowPinModal] = useState(false);
+    const [showMediaGallery, setShowMediaGallery] = useState(false);
+    const [viewingImage, setViewingImage] = useState<string | null>(null);
+    const [messageLimit, setMessageLimit] = useState(50);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const scrollPosRef = useRef<number>(0);
+    const scrollHeightRef = useRef<number>(0);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,7 +92,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     useEffect(() => {
         if (!chatId || !user) return;
 
-        const messagesRef = query(ref(rtdb, `chats/${chatId}/messages`), limitToLast(50));
+        const messagesRef = query(ref(rtdb, `chats/${chatId}/messages`), limitToLast(messageLimit));
 
         const unsubscribe = onValue(messagesRef, (snapshot) => {
             const msgs: Message[] = [];
@@ -93,6 +103,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 });
                 msgs.sort((a, b) => a.timestamp - b.timestamp);
 
+                // Mark my unread messages as read
                 msgs.forEach((msg) => {
                     if (msg.receiverId === user.uid && !msg.read) {
                         update(ref(rtdb, `chats/${chatId}/messages/${msg.id}`), { read: true });
@@ -100,10 +111,41 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 });
             }
             setMessages(msgs);
+            setLoadingMore(false);
         });
 
         return () => unsubscribe();
-    }, [chatId, user]);
+    }, [chatId, user, messageLimit]);
+
+    // Maintain scroll position when loading more
+    useEffect(() => {
+        if (!loadingMore) {
+            // Standard behavior: scroll to bottom if we are near bottom or it's initial load
+            // For simplicity in this iteration, we trigger scroll bottom on new messages if NOT loading history
+            // But wait, "messages" dependency triggers this.
+            // If we just loaded history, we DO NOT want to scroll to bottom.
+            return;
+        }
+
+        // If we were loading more, restore position
+        const container = document.getElementById("messages-container");
+        if (container && scrollHeightRef.current) {
+            const newScrollHeight = container.scrollHeight;
+            const diff = newScrollHeight - scrollHeightRef.current;
+            container.scrollTop = diff; // Jump to previous visual position
+        }
+    }, [messages]); // This runs AFTER render
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight } = e.currentTarget;
+
+        // Detect scroll to top (with small buffer)
+        if (scrollTop < 50 && !loadingMore && messages.length >= messageLimit) {
+            setLoadingMore(true);
+            scrollHeightRef.current = scrollHeight;
+            setMessageLimit(prev => prev + 50);
+        }
+    };
     // Listen for chat settings (last cleared)
     useEffect(() => {
         if (!chatId || !user) return;
@@ -201,16 +243,22 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
         }
     };
 
-    // Scroll to bottom when messages change
+    // Scroll to bottom when messages change (Initial / New Message)
     useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+        // Only scroll to bottom if NOT loading history
+        if (!loadingMore && messagesEndRef.current) {
+            const container = document.getElementById("messages-container");
+            // If user is already near bottom, auto-scroll. Else, maybe show "new message" indicator?
+            // For now, simpler: auto-scroll if it's not history load
+            scrollToBottom();
+        }
+    }, [messages, loadingMore]);
 
     // Handle mobile keyboard open/resize
     useEffect(() => {
         if (window.visualViewport) {
             const handleResize = () => {
-                scrollToBottom();
+                if (!loadingMore) scrollToBottom();
             };
             window.visualViewport.addEventListener('resize', handleResize);
             return () => window.visualViewport?.removeEventListener('resize', handleResize);
@@ -280,6 +328,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+            setSelectedFile(file);
             const reader = new FileReader();
 
             reader.onload = (event) => {
@@ -314,7 +363,8 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
 
         // Capture State Locally
         const msgText = newMessage;
-        const msgImage = image;
+        const msgImage = image; // Base64 preview
+        const fileToUpload = selectedFile; // Real file
         const currentReply = replyingTo;
 
         if ((!msgText.trim() && !msgImage) || !user || !chatId) return;
@@ -322,6 +372,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
         // 🚀 Optimistic UI: Update UI Immediately
         setNewMessage("");
         setImage(null);
+        setSelectedFile(null);
         setReplyingTo(null);
         setShowEmojiPicker(false);
         updateTypingStatus(false);
@@ -331,9 +382,25 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
         }
 
         try {
+            // 1. Upload to Cloudinary if file exists
+            let imageUrl = null;
+            if (msgImage) {
+                if (fileToUpload) {
+                    try {
+                        const secureUrl = await uploadToCloudinary(fileToUpload);
+                        imageUrl = secureUrl;
+                    } catch (err) {
+                        console.error("Cloudinary upload failed", err);
+                        imageUrl = msgImage; // Fallback to base64
+                    }
+                } else {
+                    imageUrl = msgImage; // Fallback
+                }
+            }
+
             await set(ref(rtdb, `chats/${chatId}/metadata`), {
                 participants: [user.uid, selectedUser.uid],
-                lastMessage: msgText || "Image",
+                lastMessage: msgText || (imageUrl ? "📷 Image" : ""),
                 lastMessageTimestamp: Date.now(),
             });
 
@@ -341,7 +408,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 senderId: user.uid,
                 receiverId: selectedUser.uid,
                 text: msgText,
-                image: msgImage || null,
+                image: imageUrl || null,
                 timestamp: Date.now(),
                 read: false,
             };
@@ -359,7 +426,6 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
 
         } catch (error) {
             console.error("Error sending message:", error);
-            // Ideally rollback UI here, but for "speed fix" request we prioritize the happy path
         }
     };
 
@@ -420,6 +486,15 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                                     Retrieve Messages
                                 </button>
                             )}
+                            <button
+                                onClick={() => {
+                                    setShowMenu(false);
+                                    setShowMediaGallery(true);
+                                }}
+                                className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm border-t border-[#2a3942]"
+                            >
+                                Media, Links, and Docs
+                            </button>
                         </div>
                     )}
                 </div>
@@ -427,6 +502,8 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
 
             {/* Messages - WhatsApp Dark Pattern - Scrollable */}
             <div
+                id="messages-container"
+                onScroll={handleScroll}
                 className="flex-1 overflow-y-auto overscroll-contain px-3 py-2 sm:px-6 lg:px-12"
                 style={{
                     backgroundColor: '#0b141a',
@@ -560,6 +637,16 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 onClose={() => setShowPinModal(false)}
                 onSuccess={onPinSuccess}
                 title="Retrieve Hidden Messages"
+            />
+            <MediaGallery
+                isOpen={showMediaGallery}
+                onClose={() => setShowMediaGallery(false)}
+                messages={messages}
+                onImageClick={(src) => setViewingImage(src)}
+            />
+            <ImageModal
+                src={viewingImage}
+                onClose={() => setViewingImage(null)}
             />
         </div>
     );

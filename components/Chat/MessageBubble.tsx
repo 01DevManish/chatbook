@@ -12,9 +12,10 @@ interface MessageBubbleProps {
     onReply: (message: Message) => void;
     getReplyName: (senderId: string) => string;
     onReplyClick?: (messageId: string) => void;
+    onImageClick?: (src: string) => void;
 }
 
-export default function MessageBubble({ message, onReply, getReplyName, onReplyClick }: MessageBubbleProps) {
+export default function MessageBubble({ message, onReply, getReplyName, onReplyClick, onImageClick }: MessageBubbleProps) {
     const { user } = useAuth();
     const isMe = message.senderId === user?.uid;
 
@@ -114,7 +115,8 @@ export default function MessageBubble({ message, onReply, getReplyName, onReplyC
                             <img
                                 src={message.image}
                                 alt="Sent image"
-                                className="max-w-full max-h-72 rounded-lg object-cover"
+                                className="max-w-full max-h-72 rounded-lg object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                                onClick={() => onImageClick && onImageClick(message.image!)}
                             />
                         </div>
                     )}
