@@ -1,3 +1,5 @@
+"use client";
+
 import { X, Download, ExternalLink } from "lucide-react";
 
 interface ImageModalProps {
