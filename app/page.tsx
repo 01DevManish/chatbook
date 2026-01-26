@@ -43,6 +43,13 @@ function HomeContent() {
     }
   }, [selectedUserId]);
 
+  // Redirect to Login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
+
   const handleSelectUser = (u: UserData) => {
     // Push state so back button works - force push
     // We use shallow: true? No, we want history. 
