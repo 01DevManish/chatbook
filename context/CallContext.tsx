@@ -123,23 +123,7 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    // Helper: Check Permissions
-    const checkPermissions = async (type: 'audio' | 'video') => {
-        try {
-            const constraints = {
-                audio: true,
-                video: type === 'video'
-            };
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            // Stop tracks immediately, we just wanted to trigger permission prompt
-            stream.getTracks().forEach(track => track.stop());
-            return true;
-        } catch (err) {
-            console.error("Permission denied:", err);
-            alert("Microphone/Camera permission is required for calls.");
-            return false;
-        }
-    };
+
 
     const startCall = async (targetUser: any, type: 'audio' | 'video') => {
         if (!user || !zgRef.current) return;
