@@ -30,11 +30,13 @@ export default function AdminPage() {
     const [isAuthorized, setIsAuthorized] = useState(true); // Open for now as requested
 
     useEffect(() => {
-        if (!loading && !user) {
-            router.push("/login");
+        if (!loading) {
+            if (!user) {
+                router.push("/login");
+            } else if (user.email !== "01devmaish@gmail.com") {
+                setIsAuthorized(false);
+            }
         }
-        // Ideally checking for specific email here:
-        // if (user?.email !== "admin@chatbook.com") setIsAuthorized(false);
     }, [user, loading, router]);
 
     // Fetch All Users
