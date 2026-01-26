@@ -107,11 +107,87 @@ select {
 }
 
 .message-enter {
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.15s ease-out;
 }
 
 /* Selection color */
 ::selection {
   background: rgba(0, 168, 132, 0.3);
   color: #e9edef;
+}
+
+/* ========== PERFORMANCE OPTIMIZATIONS FOR WEBVIEW ========== */
+
+/* GPU Acceleration for smooth scrolling */
+.overflow-y-auto,
+.fixed {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Optimized touch scrolling */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Reduce repaints on scroll */
+html {
+  scroll-behavior: auto;
+  /* Disable smooth scroll for performance */
+}
+
+/* Faster animations on mobile */
+@media (max-width: 640px) {
+  * {
+    animation-duration: 0.1s !important;
+    transition-duration: 0.1s !important;
+  }
+
+  /* Disable shadows on mobile for performance */
+  .shadow-md,
+  .shadow-lg,
+  .shadow-xl {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  }
+}
+
+/* Reduce motion for accessibility and performance */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* WebView specific fixes */
+@supports (-webkit-touch-callout: none) {
+
+  /* iOS WebView */
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  input,
+  textarea {
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 0;
+  }
+}
+
+/* Prevent layout shift */
+img {
+  content-visibility: auto;
+}
+
+/* Hardware acceleration for fixed elements */
+header,
+[class*="fixed"] {
+  will-change: transform;
 }

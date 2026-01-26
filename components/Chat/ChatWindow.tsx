@@ -548,22 +548,22 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
 
     return (
         <div className="fixed inset-0 flex flex-col bg-[#0b141a]">
-            {/* Header - Fixed at Top */}
-            <header className="flex-shrink-0 flex items-center space-x-3 bg-[#202c33] px-3 py-2 sm:px-4 sm:py-3 z-50 border-b border-[#2a3942]/50 safe-area-top">
+            {/* Header - Fixed at Top - WhatsApp Exact Style */}
+            <header className="flex-shrink-0 flex items-center gap-2 bg-[#202c33] px-2 py-1.5 sm:px-4 sm:py-2.5 z-50 border-b border-[#2a3942]/30" style={{ paddingTop: 'max(6px, env(safe-area-inset-top))' }}>
                 <button
                     onClick={onBack}
-                    className="sm:hidden text-[#e9edef] p-2 -ml-2 active:bg-[#374248] rounded-full transition-colors"
+                    className="sm:hidden text-[#e9edef] p-1.5 active:bg-[#374248] rounded-full transition-colors flex-shrink-0"
                 >
-                    <ArrowLeft size={24} />
+                    <ArrowLeft size={22} />
                 </button>
                 <div
-                    className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                    className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden flex-shrink-0 cursor-pointer active:opacity-80 transition-opacity"
                     onClick={() => setShowProfileModal(true)}
                 >
                     {selectedUser.photoURL ? (
                         <img src={selectedUser.photoURL} alt={selectedUser.displayName} className="h-full w-full object-cover" />
                     ) : (
-                        <span className="font-medium text-[#cfd8dc] text-lg">{selectedUser.displayName?.[0]?.toUpperCase()}</span>
+                        <span className="font-medium text-[#cfd8dc] text-base">{selectedUser.displayName?.[0]?.toUpperCase()}</span>
                     )}
                 </div>
                 <div
@@ -583,30 +583,30 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                         <p className="text-xs text-[#8696a0]">online</p>
                     )}
                 </div>
-                {/* Call Buttons */}
-                <div className="flex items-center gap-1 sm:gap-4 mr-0 sm:mr-2">
+                {/* Call Buttons - Compact on mobile */}
+                <div className="flex items-center gap-0.5 sm:gap-2 flex-shrink-0">
                     <button
                         onClick={() => startCall(selectedUser, 'video')}
-                        className="p-2 text-[#aebac1] hover:bg-[#374248] rounded-full transition-colors"
+                        className="p-1.5 sm:p-2 text-[#aebac1] active:bg-[#374248] rounded-full transition-colors"
                         title="Video Call"
                     >
-                        <Video size={24} />
+                        <Video size={20} className="sm:w-6 sm:h-6" />
                     </button>
                     <button
                         onClick={() => startCall(selectedUser, 'audio')}
-                        className="p-2 text-[#aebac1] hover:bg-[#374248] rounded-full transition-colors"
+                        className="p-1.5 sm:p-2 text-[#aebac1] active:bg-[#374248] rounded-full transition-colors"
                         title="Voice Call"
                     >
-                        <Phone size={22} />
+                        <Phone size={18} className="sm:w-[22px] sm:h-[22px]" />
                     </button>
                 </div>
                 {/* Menu Button */}
-                <div className="relative" ref={menuRef}>
+                <div className="relative flex-shrink-0" ref={menuRef}>
                     <button
                         onClick={() => setShowMenu(!showMenu)}
-                        className="p-2 text-[#aebac1] hover:bg-[#374248] rounded-full transition-colors"
+                        className="p-1.5 sm:p-2 text-[#aebac1] active:bg-[#374248] rounded-full transition-colors"
                     >
-                        <MoreVertical size={24} />
+                        <MoreVertical size={20} className="sm:w-6 sm:h-6" />
                     </button>
                     {showMenu && (
                         <div className="absolute right-0 top-12 w-48 bg-[#233138] rounded-md shadow-xl py-2 z-50 animate-in fade-in zoom-in duration-100 origin-top-right">
@@ -778,21 +778,21 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
             }
 
             {/* Input - WhatsApp Style - Fixed Bottom */}
-            <div className="flex-shrink-0 bg-[#202c33] px-2 py-1.5 sm:px-3 sm:py-2 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
+            <div className="flex-shrink-0 bg-[#202c33] px-1.5 py-1 sm:px-3 sm:py-2" style={{ paddingBottom: 'max(4px, env(safe-area-inset-bottom))' }}>
                 {/* Image Preview */}
                 {image && (
                     <div className="mb-2 relative inline-block ml-2">
-                        <img src={image || undefined} alt="Preview" className="h-16 rounded-lg border border-[#2a3942]" />
+                        <img src={image || undefined} alt="Preview" className="h-14 rounded-lg border border-[#2a3942]" />
                         <button
                             onClick={() => { setImage(null); setSelectedFile(null); }}
-                            className="absolute -top-1.5 -right-1.5 bg-[#ea4335] text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-lg"
+                            className="absolute -top-1 -right-1 bg-[#ea4335] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold shadow-lg"
                         >
                             ✕
                         </button>
                     </div>
                 )}
 
-                <form onSubmit={handleSend} className="flex items-center gap-1.5">
+                <form onSubmit={handleSend} className="flex items-center gap-1">
                     <input
                         type="file"
                         accept="image/*"
@@ -802,14 +802,14 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                     />
 
                     {/* Main Input Container - WhatsApp Style */}
-                    <div className="flex-1 flex items-center bg-[#2a3942] rounded-full min-h-[44px] px-2">
+                    <div className="flex-1 flex items-center bg-[#2a3942] rounded-full min-h-[40px] px-1">
                         {/* Emoji Button */}
                         <button
                             type="button"
                             onClick={toggleEmojiPicker}
-                            className={`p-2 rounded-full transition-colors flex-shrink-0 ${showEmojiPicker ? 'text-[#00a884]' : 'text-[#8696a0]'}`}
+                            className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${showEmojiPicker ? 'text-[#00a884]' : 'text-[#8696a0]'}`}
                         >
-                            <Smile size={22} />
+                            <Smile size={20} />
                         </button>
 
                         {/* Text Input */}
@@ -819,26 +819,26 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                             value={newMessage}
                             onChange={handleInputChange}
                             placeholder={editingMessage ? "Edit message..." : replyingTo ? "Reply..." : "Message"}
-                            className="flex-1 bg-transparent text-[#e9edef] placeholder-[#8696a0] text-[15px] focus:outline-none py-2 px-1"
+                            className="flex-1 min-w-0 bg-transparent text-[#e9edef] placeholder-[#8696a0] text-[15px] focus:outline-none py-2 px-1"
                         />
 
                         {/* Attachment Button */}
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="text-[#8696a0] p-2 rounded-full transition-colors flex-shrink-0"
+                            className="text-[#8696a0] p-1.5 rounded-full transition-colors flex-shrink-0"
                         >
-                            <ImageIcon size={22} />
+                            <ImageIcon size={20} />
                         </button>
                     </div>
 
-                    {/* Send Button - WhatsApp Green Circle */}
+                    {/* Send Button - WhatsApp Green Circle - Fixed Size */}
                     <button
                         type="submit"
                         disabled={sending || (!newMessage.trim() && !image)}
-                        className="flex-shrink-0 rounded-full bg-[#00a884] w-11 h-11 flex items-center justify-center text-[#111b21] hover:bg-[#06cf9c] disabled:opacity-40 transition-all shadow-md active:scale-95"
+                        className="flex-shrink-0 rounded-full bg-[#00a884] w-10 h-10 min-w-[40px] flex items-center justify-center text-[#111b21] active:bg-[#06cf9c] disabled:opacity-40 transition-all shadow-sm active:scale-95"
                     >
-                        <Send size={20} className="ml-0.5" />
+                        <Send size={18} className="ml-0.5" />
                     </button>
                 </form>
             </div>
