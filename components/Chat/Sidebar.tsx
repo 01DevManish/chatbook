@@ -42,7 +42,6 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [uploading, setUploading] = useState(false);
     const [typingUsers, setTypingUsers] = useState<Record<string, boolean>>({});
-    const [typingUsers, setTypingUsers] = useState<Record<string, boolean>>({});
     const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
