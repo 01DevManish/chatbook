@@ -57,7 +57,8 @@ function HomeContent() {
     router.back();
   };
 
-  if (loading) {
+  // Show loading during auth check OR if redirecting (no user)
+  if (loading || !user) {
     return (
       <div className="flex h-screen h-[100dvh] items-center justify-center bg-gray-100">
         <div className="flex flex-col items-center gap-3">
@@ -67,8 +68,6 @@ function HomeContent() {
       </div>
     );
   }
-
-  if (!user) return null;
 
   return (
     <div className="flex h-screen h-[100dvh] overflow-hidden bg-[#111b21] safe-area-top">
