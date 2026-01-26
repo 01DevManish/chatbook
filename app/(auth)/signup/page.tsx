@@ -23,6 +23,13 @@ export default function SignupPage() {
         setError("");
         setLoading(true);
 
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(email)) {
+            setError("Please enter a valid email address.");
+            setLoading(false);
+            return;
+        }
+
         try {
             const userCredential = await createUserWithEmailAndPassword(
                 auth,
@@ -154,14 +161,13 @@ export default function SignupPage() {
                             </div>
                         </div>
 
-                        <Button
+                        <button
                             type="button"
-                            variant="outline"
-                            className="w-full"
                             onClick={handleGoogleSignup}
                             disabled={loading}
+                            className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
                         >
-                            <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                            <svg className="h-5 w-5" viewBox="0 0 24 24">
                                 <path
                                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                                     fill="#4285F4"
@@ -179,8 +185,8 @@ export default function SignupPage() {
                                     fill="#EA4335"
                                 />
                             </svg>
-                            Google
-                        </Button>
+                            <span>Sign up with Google</span>
+                        </button>
                     </div>
 
                     <div className="text-center text-sm">
