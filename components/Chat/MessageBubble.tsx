@@ -13,9 +13,10 @@ interface MessageBubbleProps {
     getReplyName: (senderId: string) => string;
     onReplyClick?: (messageId: string) => void;
     onImageClick?: (src: string) => void;
+    senderName?: string; // New Prop
 }
 
-export default function MessageBubble({ message, onReply, getReplyName, onReplyClick, onImageClick }: MessageBubbleProps) {
+export default function MessageBubble({ message, onReply, getReplyName, onReplyClick, onImageClick, senderName }: MessageBubbleProps) {
     const { user } = useAuth();
     const isMe = message.senderId === user?.uid;
 
@@ -72,6 +73,13 @@ export default function MessageBubble({ message, onReply, getReplyName, onReplyC
                             : "bg-[#202c33] text-[#e9edef] rounded-tl-none"
                     )}
                 >
+                    {/* Sender Name for Groups */}
+                    {senderName && !isMe && (
+                        <p className="text-xs font-bold text-[#53bdeb] mb-1">
+                            {senderName}
+                        </p>
+                    )}
+
                     {/* Modern Message Tail */}
                     <svg
                         className={cn(
@@ -87,11 +95,6 @@ export default function MessageBubble({ message, onReply, getReplyName, onReplyC
                             <path d="M10 0 L0 0 L10 10 Z" />
                         )}
                     </svg>
-                    {/* Wait, simple CSS borders on pseudo elements is cleaner than SVG for tails usually, but gradients make it hard. 
-                        Let's stick to the CSS border trick but refine it. 
-                        The user wants "mast".
-                        Let's use a nice gradient background for "Me" messages.
-                    */}
 
                     {/* Reply Preview */}
                     {message.replyTo && (

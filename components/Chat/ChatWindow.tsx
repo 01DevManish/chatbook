@@ -12,6 +12,7 @@ import PinModal from "@/components/UI/PinModal";
 import MediaGallery from "./MediaGallery";
 import ImageModal from "@/components/UI/ImageModal";
 import WallpaperModal from "./WallpaperModal";
+import ProfileModal from "@/components/UI/ProfileModal";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 
 interface UserData {
@@ -21,6 +22,8 @@ interface UserData {
     photoURL?: string;
     username?: string;
     lastSeen?: number;
+    isGroup?: boolean;
+    participants?: Record<string, boolean>;
 }
 
 interface ChatWindowProps {
@@ -61,6 +64,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     const [showWallpaperModal, setShowWallpaperModal] = useState(false);
     const [wallpaper, setWallpaper] = useState<string>("");
     const [viewingImage, setViewingImage] = useState<string | null>(null);
+    const [showProfileModal, setShowProfileModal] = useState(false);
     const [messageLimit, setMessageLimit] = useState(50);
     const [loadingMore, setLoadingMore] = useState(false);
     const scrollPosRef = useRef<number>(0);
@@ -473,14 +477,20 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 >
                     <ArrowLeft size={24} />
                 </button>
-                <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden flex-shrink-0">
+                <div
+                    className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setShowProfileModal(true)}
+                >
                     {selectedUser.photoURL ? (
                         <img src={selectedUser.photoURL} alt={selectedUser.displayName} className="h-full w-full object-cover" />
                     ) : (
                         <span className="font-medium text-[#cfd8dc] text-lg">{selectedUser.displayName?.[0]?.toUpperCase()}</span>
                     )}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div
+                    className="flex-1 min-w-0 cursor-pointer"
+                    onClick={() => setShowProfileModal(true)}
+                >
                     <h3 className="font-medium text-[#e9edef] truncate">{selectedUser.displayName}</h3>
                     {isOtherTyping ? (
                         <p className="text-xs text-[#25d366] font-medium">
