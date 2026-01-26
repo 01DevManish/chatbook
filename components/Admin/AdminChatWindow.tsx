@@ -5,6 +5,7 @@ import { ref, onValue, get } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import ImageModal from "@/components/UI/ImageModal";
 
 interface Message {
     id: string;
@@ -22,6 +23,7 @@ interface AdminChatWindowProps {
 
 export default function AdminChatWindow({ chatId, user1, user2 }: AdminChatWindowProps) {
     const [messages, setMessages] = useState<Message[]>([]);
+    const [viewingImage, setViewingImage] = useState<string | null>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -85,7 +87,12 @@ export default function AdminChatWindow({ chatId, user1, user2 }: AdminChatWindo
                                 </div>
 
                                 {msg.image && (
-                                    <img src={msg.image} alt="Image" className="rounded-lg max-h-60 max-w-full object-cover mt-1 mb-1" />
+                                    <img
+                                        src={msg.image}
+                                        alt="Image"
+                                        className="rounded-lg max-h-60 max-w-full object-cover mt-1 mb-1 cursor-pointer hover:opacity-90 transition-opacity"
+                                        onClick={() => setViewingImage(msg.image || null)}
+                                    />
                                 )}
 
                                 {msg.text && (
@@ -101,6 +108,11 @@ export default function AdminChatWindow({ chatId, user1, user2 }: AdminChatWindo
                 })}
                 <div ref={bottomRef} />
             </div>
+
+            <ImageModal
+                src={viewingImage}
+                onClose={() => setViewingImage(null)}
+            />
         </div>
     );
 }
