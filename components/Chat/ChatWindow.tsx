@@ -603,7 +603,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 text-sm text-[#25d366] font-medium">
                                 <Reply size={14} />
-                                Replying to {getReplyPreviewName(replyingTo.senderId)}
+                                Replying to {getReplyPreviewName(replyingTo!.senderId)}
                             </div>
                             <p className="text-sm text-[#8696a0] truncate">
                                 {replyingTo.text || (replyingTo.image ? "📷 Image" : "")}
@@ -636,7 +636,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
             <div className="flex-shrink-0 bg-[#202c33] px-2 py-2 sm:px-4 sm:py-3 z-50 w-full mb-[env(safe-area-inset-bottom)]">
                 {image && (
                     <div className="mb-3 relative inline-block mx-2">
-                        <img src={image} alt="Preview" className="h-20 rounded-lg border border-[#2a3942]" />
+                        <img src={image || undefined} alt="Preview" className="h-20 rounded-lg border border-[#2a3942]" />
                         <button
                             onClick={() => setImage(null)}
                             className="absolute -top-2 -right-2 bg-[#ea4335] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold"
