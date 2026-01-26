@@ -95,8 +95,10 @@ export default function MessageBubble({
         setShowMenu(false);
     };
 
+    const hasReactions = message.reactions && Object.keys(message.reactions).length > 0;
+
     return (
-        <div id={`message-${message.id}`} className="relative w-full mb-1 group">
+        <div id={`message-${message.id}`} className={cn("relative w-full group", hasReactions ? "mb-5" : "mb-1")}>
             {/* Swipe Reply Indicator */}
             <motion.div
                 style={{ opacity, scale, x: -30 }}
@@ -143,16 +145,16 @@ export default function MessageBubble({
                     )}
                 >
                     {/* Reactions Display */}
-                    {message.reactions && Object.keys(message.reactions).length > 0 && (
+                    {hasReactions && (
                         <div className={cn(
-                            "absolute -bottom-3 flex gap-0.5 bg-[#1f2c33] rounded-full px-1.5 py-0.5 border border-[#2a3942] shadow-lg",
+                            "absolute -bottom-4 flex gap-0.5 bg-[#1f2c33] rounded-full px-2 py-0.5 border border-[#2a3942] shadow-lg z-20",
                             isMe ? "right-2" : "left-2"
                         )}>
-                            {Object.entries(message.reactions).slice(0, 3).map(([emoji, users]) => (
+                            {Object.entries(message.reactions!).slice(0, 3).map(([emoji, users]) => (
                                 <span key={emoji} className="text-sm">{emoji}</span>
                             ))}
-                            {Object.keys(message.reactions).length > 3 && (
-                                <span className="text-xs text-[#8696a0] ml-0.5">+{Object.keys(message.reactions).length - 3}</span>
+                            {Object.keys(message.reactions!).length > 3 && (
+                                <span className="text-xs text-[#8696a0] ml-0.5">+{Object.keys(message.reactions!).length - 3}</span>
                             )}
                         </div>
                     )}
