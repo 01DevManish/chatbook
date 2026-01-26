@@ -731,6 +731,11 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 onSelect={handleWallpaperSelect}
                 currentWallpaper={wallpaper}
             />
+            <ProfileModal
+                isOpen={showProfileModal}
+                onClose={() => setShowProfileModal(false)}
+                user={selectedUser}
+            />
         </div >
     );
 }
