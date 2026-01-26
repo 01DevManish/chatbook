@@ -12,7 +12,9 @@ import { updateProfile } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import { useRef } from "react";
 import { UserPlus } from "lucide-react";
-import AddContactModal from "@/components/Chat/AddContactModal"; // Ensure import
+import AddContactModal from "@/components/Chat/AddContactModal";
+import CreateGroupModal from "@/components/Chat/CreateGroupModal";
+import { Users as GroupIcon } from "lucide-react";
 
 interface UserData {
     uid: string;
@@ -20,6 +22,12 @@ interface UserData {
     email?: string;
     photoURL?: string;
     username?: string;
+    // Group fields
+    isGroup?: boolean;
+    id?: string;
+    participants?: Record<string, boolean>;
+    lastMessage?: string;
+    lastMessageTimestamp?: number;
 }
 
 interface SidebarProps {
@@ -34,6 +42,9 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [uploading, setUploading] = useState(false);
     const [typingUsers, setTypingUsers] = useState<Record<string, boolean>>({});
+    const [typingUsers, setTypingUsers] = useState<Record<string, boolean>>({});
+    const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
@@ -45,31 +56,57 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
         }
 
         const contactsRef = ref(rtdb, `users/${user.uid}/contacts`);
+        const groupsRef = ref(rtdb, `users/${user.uid}/groups`);
 
-        const unsubscribe = onValue(contactsRef, async (snapshot) => {
-            if (snapshot.exists()) {
-                const contactsData = snapshot.val();
+        // Fetch Contacts & Groups in parallel logic could be better, but nesting listeners is safe for realtime
+        const unsubscribe = onValue(contactsRef, async (contactSnapshot) => {
+            const loadedItems: UserData[] = [];
+
+            // 1. Process Contacts
+            if (contactSnapshot.exists()) {
+                const contactsData = contactSnapshot.val();
                 const contactIds = Object.keys(contactsData);
-
-                // Now fetch details for each contact
-                // In a real app, you might duplicate contact info to avoid N+1 fetches,
-                // or use a query. Here we'll fetch them individually (acceptable for small lists).
-                const loadedContacts: UserData[] = [];
 
                 for (const contactId of contactIds) {
                     const userSnap = await get(ref(rtdb, `users/${contactId}`));
                     if (userSnap.exists()) {
-                        loadedContacts.push({
+                        loadedItems.push({
                             uid: contactId,
                             ...userSnap.val()
                         });
                     }
                 }
-                setUsers(loadedContacts);
-            } else {
-                setUsers([]);
             }
-            setLoading(false);
+
+            // 2. Process Groups (Realtime listener for group IDs)
+            onValue(groupsRef, async (groupSnapshot) => {
+                const groupItems: UserData[] = [];
+                if (groupSnapshot.exists()) {
+                    const groupIds = Object.keys(groupSnapshot.val());
+                    for (const groupId of groupIds) {
+                        const groupSnap = await get(ref(rtdb, `groups/${groupId}`));
+                        if (groupSnap.exists()) {
+                            const gData = groupSnap.val();
+                            groupItems.push({
+                                uid: groupId, // Use ID as UID for uniform handling
+                                displayName: gData.name,
+                                photoURL: gData.photoURL,
+                                isGroup: true,
+                                ...gData
+                            });
+                        }
+                    }
+                }
+
+                // Merge and Set
+                // Ideally, we should sort by last message timestamp if available
+                const allItems = [...loadedItems, ...groupItems];
+                // Simple sort by name for now, or lastMessageTimestamp if we had it for all
+                setUsers(allItems);
+                setLoading(false);
+
+            }, { onlyOnce: false }); // Groups might change
+
         }, (error) => {
             console.error("Error fetching contacts:", error);
             setLoading(false);
@@ -236,9 +273,36 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                     >
                         <LogOut size={20} />
                     </button>
-                    <button className="rounded-full p-2 text-[#aebac1] hover:bg-[#374248] transition-colors">
-                        <MoreVertical size={20} />
-                    </button>
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowMenu(!showMenu)}
+                            className="rounded-full p-2 text-[#aebac1] hover:bg-[#374248] transition-colors"
+                        >
+                            <MoreVertical size={20} />
+                        </button>
+                        {showMenu && (
+                            <div className="absolute right-0 top-10 w-48 bg-[#233138] rounded-md shadow-xl py-2 z-50">
+                                <button
+                                    onClick={() => {
+                                        setShowMenu(false);
+                                        setIsCreateGroupOpen(true);
+                                    }}
+                                    className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm"
+                                >
+                                    New Group
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowMenu(false);
+                                        // Settings or other actions could go here
+                                    }}
+                                    className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm"
+                                >
+                                    Settings
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -310,7 +374,11 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                                     />
                                 ) : (
                                     <span className="text-lg font-medium text-[#cfd8dc]">
-                                        {otherUser.displayName?.[0]?.toUpperCase() || "?"}
+                                        {otherUser.isGroup ? (
+                                            <GroupIcon size={24} />
+                                        ) : (
+                                            otherUser.displayName?.[0]?.toUpperCase() || "?"
+                                        )}
                                     </span>
                                 )}
                             </div>
@@ -343,6 +411,10 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
             <AddContactModal
                 isOpen={isAddContactOpen}
                 onClose={() => setIsAddContactOpen(false)}
+            />
+            <CreateGroupModal
+                isOpen={isCreateGroupOpen}
+                onClose={() => setIsCreateGroupOpen(false)}
             />
         </div>
     );
