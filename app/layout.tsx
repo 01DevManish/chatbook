@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { CallProvider } from "@/context/CallContext";
 import NotificationManager from "@/components/NotificationManager";
+import CallModal from "@/components/Call/CallModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,8 +53,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <NotificationManager />
-          {children}
+          <CallProvider>
+            <NotificationManager />
+            <CallModal />
+            {children}
+          </CallProvider>
         </AuthProvider>
       </body>
     </html>

@@ -66,26 +66,32 @@ export default function MessageBubble({ message, onReply, getReplyName, onReplyC
 
                 <div
                     className={cn(
-                        "max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] rounded-lg px-3 py-2 shadow-sm relative",
+                        "max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] rounded-2xl px-4 py-3 shadow-md relative transition-all hover:shadow-lg",
                         isMe
-                            ? "bg-[#005c4b] text-[#e9edef] rounded-tr-sm"
-                            : "bg-[#202c33] text-[#e9edef] rounded-tl-sm"
+                            ? "bg-gradient-to-br from-[#005c4b] to-[#004a3c] text-[#e9edef] rounded-tr-none"
+                            : "bg-[#202c33] text-[#e9edef] rounded-tl-none"
                     )}
                 >
-                    {/* WhatsApp-style message tail */}
-                    <div
+                    {/* Modern Message Tail */}
+                    <svg
                         className={cn(
-                            "absolute top-0 w-3 h-3",
-                            isMe
-                                ? "right-0 -mr-2"
-                                : "left-0 -ml-2"
+                            "absolute top-0 w-3 h-3 text-current",
+                            isMe ? "right-0 -mr-2 text-[#005c4b] fill-current" : "left-0 -ml-2 text-[#202c33] fill-current"
                         )}
-                        style={{
-                            borderTop: isMe ? '8px solid #005c4b' : '8px solid #202c33',
-                            borderLeft: isMe ? '8px solid transparent' : 'none',
-                            borderRight: isMe ? 'none' : '8px solid transparent',
-                        }}
-                    />
+                        viewBox="0 0 10 10"
+                        style={{ color: isMe ? '#005c4b' : '#202c33' }}
+                    >
+                        {isMe ? (
+                            <path d="M0 0 L10 0 L0 10 Z" />
+                        ) : (
+                            <path d="M10 0 L0 0 L10 10 Z" />
+                        )}
+                    </svg>
+                    {/* Wait, simple CSS borders on pseudo elements is cleaner than SVG for tails usually, but gradients make it hard. 
+                        Let's stick to the CSS border trick but refine it. 
+                        The user wants "mast".
+                        Let's use a nice gradient background for "Me" messages.
+                    */}
 
                     {/* Reply Preview */}
                     {message.replyTo && (

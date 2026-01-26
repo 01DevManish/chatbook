@@ -4,8 +4,9 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { ref, onValue, push, set, update, remove, query, limitToLast } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { useCall } from "@/context/CallContext";
 import MessageBubble from "./MessageBubble";
-import { Image as ImageIcon, Send, ArrowLeft, X, Reply, Smile, MoreVertical } from "lucide-react";
+import { Image as ImageIcon, Send, ArrowLeft, X, Reply, Smile, MoreVertical, Video, Phone } from "lucide-react";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import PinModal from "@/components/UI/PinModal";
 import MediaGallery from "./MediaGallery";
@@ -43,6 +44,7 @@ export interface Message {
 
 export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     const { user } = useAuth();
+    const { startCall } = useCall();
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState("");
     const [image, setImage] = useState<string | null>(null);
@@ -461,6 +463,23 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                     ) : (
                         <p className="text-xs text-[#8696a0]">online</p>
                     )}
+                </div>
+                {/* Call Buttons */}
+                <div className="flex items-center gap-1 sm:gap-4 mr-0 sm:mr-2">
+                    <button
+                        onClick={() => startCall(selectedUser, 'video')}
+                        className="p-2 text-[#aebac1] hover:bg-[#374248] rounded-full transition-colors"
+                        title="Video Call"
+                    >
+                        <Video size={24} />
+                    </button>
+                    <button
+                        onClick={() => startCall(selectedUser, 'audio')}
+                        className="p-2 text-[#aebac1] hover:bg-[#374248] rounded-full transition-colors"
+                        title="Voice Call"
+                    >
+                        <Phone size={22} />
+                    </button>
                 </div>
                 {/* Menu Button */}
                 <div className="relative" ref={menuRef}>

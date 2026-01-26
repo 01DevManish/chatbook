@@ -55,7 +55,7 @@ export default function PinModal({ isOpen, onClose, onSuccess, title = "Enter Se
                 if (newPin.join("") === "2003") {
                     onSuccess();
                 } else {
-                    setError("Incorrect PIN (Try 2003)");
+                    setError("Invalid PIN");
                     setPin(["", "", "", ""]);
                     inputRefs[0].current?.focus();
                 }
