@@ -269,18 +269,24 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         // Check functionality
-        await zg.loginRoom(roomID, token, { userID: user.uid, userName: user.displayName || "User" });
+        const loggedIn = await zg.loginRoom(roomID, token, { userID: user.uid, userName: user.displayName || "User" });
+        if (!loggedIn) {
+            console.error("Login Room Failed");
+            return;
+        }
 
         // Create Stream
         const stream = await zg.createStream({
             camera: { video: callType === 'video', audio: true }
         });
 
+        // Set local stream immediately
         setLocalStream(stream);
 
         // Publish
         const streamID = roomID + "_" + user.uid;
-        zg.startPublishingStream(streamID, stream);
+        const published = zg.startPublishingStream(streamID, stream);
+        console.log("Publishing Stream:", published);
     };
 
     const toggleMic = () => {

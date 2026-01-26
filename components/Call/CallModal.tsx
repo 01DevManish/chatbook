@@ -10,9 +10,29 @@ export default function CallModal() {
         callState, callType, caller, acceptCall, rejectCall, endCall,
         localStream, remoteStream, toggleMic, toggleCamera, isMicOn, isCameraOn
     } = useCall();
+    const [duration, setDuration] = useState(0);
 
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
+
+    // Timer Logic
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (callState === 'connected') {
+            interval = setInterval(() => {
+                setDuration(prev => prev + 1);
+            }, 1000);
+        } else {
+            setDuration(0);
+        }
+        return () => clearInterval(interval);
+    }, [callState]);
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
 
     // Attach streams
     useEffect(() => {
@@ -112,7 +132,7 @@ export default function CallModal() {
                                     <img src={caller?.photo || ""} alt={caller?.name} className="w-full h-full object-cover" />
                                 </div>
                                 <h2 className="text-2xl font-semibold">{caller?.name}</h2>
-                                <p className="text-gray-400 mt-2">00:00</p>
+                                <p className="text-gray-400 mt-2">{formatTime(duration)}</p>
                             </div>
                         )}
 
