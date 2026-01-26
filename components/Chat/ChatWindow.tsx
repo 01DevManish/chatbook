@@ -39,6 +39,8 @@ export interface Message {
     image?: string | null;
     timestamp: number;
     read: boolean;
+    edited?: boolean;
+    reactions?: Record<string, string[]>; // emoji -> userIds
     replyTo?: {
         id: string;
         text: string;
@@ -65,6 +67,8 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     const [wallpaper, setWallpaper] = useState<string>("");
     const [viewingImage, setViewingImage] = useState<string | null>(null);
     const [showProfileModal, setShowProfileModal] = useState(false);
+    const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+    const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
     const [messageLimit, setMessageLimit] = useState(50);
     const [loadingMore, setLoadingMore] = useState(false);
     const scrollPosRef = useRef<number>(0);
@@ -394,6 +398,12 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        // If in edit mode, save the edit instead
+        if (editingMessage) {
+            await handleSaveEdit();
+            return;
+        }
+
         // Capture State Locally
         const msgText = newMessage;
         const msgImage = image; // Base64 preview
@@ -465,6 +475,72 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     const getReplyPreviewName = (senderId: string) => {
         if (senderId === user?.uid) return "You";
         return selectedUser.displayName || "User";
+    };
+
+    // Message Actions
+    const handleDeleteMessage = async (messageId: string) => {
+        if (!chatId) return;
+        try {
+            await remove(ref(rtdb, `chats/${chatId}/messages/${messageId}`));
+        } catch (error) {
+            console.error("Error deleting message:", error);
+        }
+    };
+
+    const handleEditMessage = (message: Message) => {
+        setEditingMessage(message);
+        setNewMessage(message.text);
+        inputRef.current?.focus();
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingMessage || !chatId || !newMessage.trim()) return;
+        try {
+            await update(ref(rtdb, `chats/${chatId}/messages/${editingMessage.id}`), {
+                text: newMessage,
+                edited: true
+            });
+            setEditingMessage(null);
+            setNewMessage("");
+        } catch (error) {
+            console.error("Error editing message:", error);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingMessage(null);
+        setNewMessage("");
+    };
+
+    const handleReactToMessage = async (messageId: string, emoji: string) => {
+        if (!chatId || !user) return;
+        try {
+            const reactionRef = ref(rtdb, `chats/${chatId}/messages/${messageId}/reactions/${emoji}`);
+            // Toggle reaction - if user already reacted with this emoji, remove it
+            const msg = messages.find(m => m.id === messageId);
+            const existingReactions = msg?.reactions?.[emoji] || [];
+
+            if (existingReactions.includes(user.uid)) {
+                // Remove reaction
+                const newReactions = existingReactions.filter(uid => uid !== user.uid);
+                if (newReactions.length === 0) {
+                    await remove(reactionRef);
+                } else {
+                    await set(reactionRef, newReactions);
+                }
+            } else {
+                // Add reaction
+                await set(reactionRef, [...existingReactions, user.uid]);
+            }
+        } catch (error) {
+            console.error("Error reacting to message:", error);
+        }
+    };
+
+    const handleForwardMessage = (message: Message) => {
+        setForwardingMessage(message);
+        // TODO: Open forward modal to select contact
+        alert("Forward feature coming soon!");
     };
 
     return (
@@ -599,6 +675,11 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                                 onReply={handleReply}
                                 getReplyName={getReplyPreviewName}
                                 onReplyClick={scrollToMessage}
+                                onImageClick={(src) => setViewingImage(src)}
+                                onDelete={handleDeleteMessage}
+                                onEdit={handleEditMessage}
+                                onForward={handleForwardMessage}
+                                onReact={handleReactToMessage}
                             />
                         ))}
                     </div>
@@ -620,6 +701,25 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                             </p>
                         </div>
                         <button onClick={cancelReply} className="text-[#8696a0] hover:text-[#e9edef] p-1">
+                            <X size={20} />
+                        </button>
+                    </div>
+                )
+            }
+
+            {/* Edit Mode Indicator */}
+            {
+                editingMessage && (
+                    <div className="bg-[#1f2c33] border-l-4 border-[#53bdeb] px-4 py-2 flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 text-sm text-[#53bdeb] font-medium">
+                                ✏️ Editing message
+                            </div>
+                            <p className="text-sm text-[#8696a0] truncate">
+                                {editingMessage.text}
+                            </p>
+                        </div>
+                        <button onClick={handleCancelEdit} className="text-[#8696a0] hover:text-[#e9edef] p-1">
                             <X size={20} />
                         </button>
                     </div>
