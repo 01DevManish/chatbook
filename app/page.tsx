@@ -27,6 +27,7 @@ function HomeContent() {
   useEffect(() => {
     if (selectedUserId) {
       const fetchUser = async () => {
+        // Dynamic imports for performance (optional, but kept consistent)
         const { ref, get } = await import("firebase/database");
         const { rtdb } = await import("@/lib/firebase");
         const snap = await get(ref(rtdb, `users/${selectedUserId}`));
@@ -34,6 +35,8 @@ function HomeContent() {
           setSelectedUser({ uid: selectedUserId, ...snap.val() });
         }
       };
+
+      // Execute the async fetch
       fetchUser();
     } else {
       setSelectedUser(null);
@@ -57,6 +60,8 @@ function HomeContent() {
 
   const handleSelectUser = (u: UserData) => {
     // Push state so back button works - force push
+    // We use shallow: true? No, we want history. 
+    // scroll: false keeps the viewport stable.
     router.push(`/?chat=${u.uid}`, { scroll: false });
     // Manually set state for immediate feedback
     setSelectedUser(u);
