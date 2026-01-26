@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { onAuthStateChanged, User, browserLocalPersistence } from "firebase/auth";
 import { ref, get, set, serverTimestamp, onValue, onDisconnect } from "firebase/database";
 import { auth, rtdb } from "@/lib/firebase";
 
@@ -20,6 +20,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Ensure Persistence
+        auth.setPersistence(browserLocalPersistence)
+            .then(() => {
+                // Persistence set
+            })
+            .catch((error) => {
+                console.error("Auth Persistence Error:", error);
+            });
+
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 // Ensure user exists in Realtime Database

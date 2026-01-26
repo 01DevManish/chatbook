@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Chat/Sidebar";
 import ChatWindow from "@/components/Chat/ChatWindow";
 import { cn } from "@/lib/utils";
@@ -19,13 +19,59 @@ interface UserData {
 export default function HomePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedUserId = searchParams.get('chat');
+
+  // We need to fetch/have access to the user list to hydrate selectedUser from ID
+  // But Sidebar handles fetching users. 
+  // Solution: Lift user state or fetch specific user if ID exists?
+  // Easier: Just pass the ID to Sidebar/ChatWindow and let them handle it?
+  // Or: Let's fetch the selected User Data if we have an ID but no object.
+  // Actually, standard pattern: Sidebar has the list. 
+  // Let's keep it simple: When Sidebar selects, we do router.push('?chat=uid').
+  // Then we need to know the UserData for that UID.
+  // We can fetch it or find it. 
+  // Let's modify Sidebar to take `selectedUserId` string instead of object.
+
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
 
+  // Sync URL -> State
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
+    if (selectedUserId) {
+      // We need to get the user data. 
+      // For now, if we don't have it, we might show loading or fetch it.
+      // Let's simple fetch it from RTDB if missing?
+      // Or wait for Sidebar to pass it back?
+      // Let's implement a direct fetch here to ensure deep linking works.
+      // Actually, just passing ID to ChatWindow is enough if ChatWindow fetches?
+      // No, ChatWindow expects object.
+      // Let's fetch it.
+      const fetchUser = async () => {
+        // Import these dynamically or move imports up? 
+        // We need rtdb/ref/get
+        const { ref, get } = await import("firebase/database");
+        const { rtdb } = await import("@/lib/firebase");
+        const snap = await get(ref(rtdb, `users/${selectedUserId}`));
+        if (snap.exists()) {
+          setSelectedUser({ uid: selectedUserId, ...snap.val() });
+        }
+      };
+      fetchUser();
+    } else {
+      setSelectedUser(null);
     }
-  }, [user, loading, router]);
+  }, [selectedUserId]);
+
+  const handleSelectUser = (u: UserData) => {
+    // Push state so back button works
+    router.push(`/?chat=${u.uid}`);
+    setSelectedUser(u);
+  };
+
+  const handleBack = () => {
+    router.push('/');
+    setSelectedUser(null);
+  };
 
   if (loading) {
     return (
@@ -61,7 +107,7 @@ export default function HomePage() {
         >
           <Sidebar
             selectedUser={selectedUser}
-            onSelectUser={setSelectedUser}
+            onSelectUser={handleSelectUser}
           />
         </div>
 
@@ -76,7 +122,7 @@ export default function HomePage() {
           {selectedUser ? (
             <ChatWindow
               selectedUser={selectedUser}
-              onBack={() => setSelectedUser(null)}
+              onBack={handleBack}
             />
           ) : (
             <div className="hidden h-full flex-col items-center justify-center text-center sm:flex bg-[#222e35]">
