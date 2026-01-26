@@ -43,21 +43,6 @@ function HomeContent() {
     }
   }, [selectedUserId]);
 
-  // History Buffer for "3 times back to exit"
-  useEffect(() => {
-    // Only apply buffer if we are at root and not in a chat
-    if (!selectedUserId && typeof window !== 'undefined') {
-      const hasBuffered = sessionStorage.getItem('history_buffered');
-      if (!hasBuffered) {
-        // Push current state twice to create a buffer
-        // This forces the user to press back multiple times to actually leave the domain
-        window.history.pushState(null, '', '/');
-        window.history.pushState(null, '', '/');
-        sessionStorage.setItem('history_buffered', 'true');
-      }
-    }
-  }, [selectedUserId]);
-
   const handleSelectUser = (u: UserData) => {
     // Push state so back button works - force push
     // We use shallow: true? No, we want history. 
