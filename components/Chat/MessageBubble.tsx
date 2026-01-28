@@ -250,19 +250,19 @@ export default function MessageBubble({
                         </p>
                     )}
 
-                    {/* Modern Message Tail */}
+                    {/* WhatsApp Style Message Tail */}
                     <svg
                         className={cn(
-                            "absolute top-0 w-3 h-3 text-current",
-                            isMe ? "right-0 -mr-2 text-[#005c4b] fill-current" : "left-0 -ml-2 text-[#202c33] fill-current"
+                            "absolute top-0 w-[8px] h-[13px] text-current",
+                            isMe ? "right-[-8px] text-[#005c4b] fill-current" : "left-[-8px] text-[#202c33] fill-current"
                         )}
-                        viewBox="0 0 10 10"
-                        style={{ color: isMe ? '#005c4b' : '#202c33' }}
+                        viewBox="0 0 8 13"
+                        preserveAspectRatio="none"
                     >
                         {isMe ? (
-                            <path d="M0 0 L10 0 L0 10 Z" />
+                            <path d="M5.188,1H0v11.193l6.467-8.625C7.526,2.156,6.958,1,5.188,1z" />
                         ) : (
-                            <path d="M10 0 L0 0 L10 10 Z" />
+                            <path d="M1.533,3.568L8,12.193V1H2.812C1.042,1,0.474,2.156,1.533,3.568z" />
                         )}
                     </svg>
 
@@ -271,7 +271,7 @@ export default function MessageBubble({
                         <div
                             onClick={() => onReplyClick && message.replyTo && onReplyClick(message.replyTo.id)}
                             className={cn(
-                                "mb-2 px-3 py-2 rounded-md text-sm border-l-4 cursor-pointer hover:opacity-90 transition-opacity",
+                                "mb-1 px-3 py-2 rounded-md text-sm border-l-4 cursor-pointer hover:opacity-90 transition-opacity",
                                 isMe
                                     ? "bg-[#025144] border-l-[#25d366]"
                                     : "bg-[#1a262d] border-l-[#8696a0]"
@@ -290,7 +290,7 @@ export default function MessageBubble({
                     )}
 
                     {message.image && (
-                        <div className="mb-2 -mx-1">
+                        <div className="mb-1 -mx-1">
                             <img
                                 src={message.image}
                                 alt="Sent image"
@@ -301,7 +301,7 @@ export default function MessageBubble({
                     )}
 
                     {message.text && (
-                        <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">{message.text}</p>
+                        <p className="text-[14.2px] leading-[19px] break-words whitespace-pre-wrap">{message.text}</p>
                     )}
 
                     {/* Edited indicator */}
@@ -311,9 +311,10 @@ export default function MessageBubble({
 
                     <div
                         className={cn(
-                            "mt-1 text-[10px] flex items-center gap-1",
-                            isMe ? "justify-end text-[#8696a0]" : "justify-start text-[#8696a0]"
+                            "mt-1 text-[11px] flex items-center gap-1 opacity-60 h-[15px]",
+                            isMe ? "justify-end text-[#e9edef]" : "justify-end text-[#e9edef]"
                         )}
+                        style={{ float: 'right', marginLeft: '8px' }}
                     >
                         {message.timestamp
                             ? formatDate(new Date(message.timestamp))

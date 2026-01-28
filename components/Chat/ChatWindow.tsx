@@ -802,7 +802,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                     </div>
                 )}
 
-                <form onSubmit={handleSend} className="flex items-center gap-1">
+                <form onSubmit={handleSend} className="flex items-center gap-2">
                     <input
                         type="file"
                         accept="image/*"
@@ -811,44 +811,46 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                         onChange={handleImageSelect}
                     />
 
-                    {/* Main Input Container - WhatsApp Style */}
-                    <div className="flex-1 flex items-center bg-[#2a3942] rounded-full min-h-[40px] px-1">
-                        {/* Emoji Button */}
-                        <button
-                            type="button"
-                            onClick={toggleEmojiPicker}
-                            className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${showEmojiPicker ? 'text-[#00a884]' : 'text-[#8696a0]'}`}
-                        >
-                            <Smile size={20} />
-                        </button>
+                    {/* Emoji Button - Outside Input on Mobile, Inside on Desktop */}
+                    <button
+                        type="button"
+                        onClick={toggleEmojiPicker}
+                        className={`p-2 rounded-full transition-colors flex-shrink-0 hover:bg-[#374248] ${showEmojiPicker ? 'text-[#00a884]' : 'text-[#8696a0]'}`}
+                    >
+                        <Smile size={24} />
+                    </button>
 
+                    {/* Attachment Button */}
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-2 text-[#8696a0] rounded-full transition-colors flex-shrink-0 hover:bg-[#374248] -ml-1 mr-1"
+                    >
+                        <ImageIcon size={24} />
+                    </button>
+
+                    {/* Main Input Container - WhatsApp Style */}
+                    <div className="flex-1 flex items-center bg-[#2a3942] rounded-xl px-2 py-1.5 sm:py-2">
                         {/* Text Input */}
                         <input
                             ref={inputRef}
                             type="text"
                             value={newMessage}
                             onChange={handleInputChange}
-                            placeholder={editingMessage ? "Edit message..." : replyingTo ? "Reply..." : "Message"}
-                            className="flex-1 min-w-0 bg-transparent text-[#e9edef] placeholder-[#8696a0] text-[15px] focus:outline-none py-2 px-1"
+                            placeholder={editingMessage ? "Edit message..." : replyingTo ? "Reply..." : "Type a message"}
+                            className="flex-1 min-w-0 bg-transparent text-[#e9edef] placeholder-[#8696a0] text-[15px] focus:outline-none px-2"
                         />
-
-                        {/* Attachment Button */}
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="text-[#8696a0] p-1.5 rounded-full transition-colors flex-shrink-0"
-                        >
-                            <ImageIcon size={20} />
-                        </button>
                     </div>
 
-                    {/* Send Button - WhatsApp Green Circle - Fixed Size */}
+                    {/* Send / Mic Button */}
                     <button
                         type="submit"
                         disabled={sending || (!newMessage.trim() && !image)}
-                        className="flex-shrink-0 rounded-full bg-[#00a884] w-10 h-10 min-w-[40px] flex items-center justify-center text-[#111b21] active:bg-[#06cf9c] disabled:opacity-40 transition-all shadow-sm active:scale-95"
+                        className={`p-2 rounded-full flex-shrink-0 flex items-center justify-center transition-all 
+                            ${(newMessage.trim() || image) ? 'text-[#00a884]' : 'text-[#8696a0]'}
+                            hover:bg-[#374248] active:scale-95`}
                     >
-                        <Send size={18} className="ml-0.5" />
+                        {(newMessage.trim() || image) ? <Send size={24} /> : <div className="p-1"><span title="Voice coming soon">🎤</span></div>}
                     </button>
                 </form>
             </div>

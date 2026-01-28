@@ -1,20 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ref, onValue, update, get } from "firebase/database";
+import { useEffect, useState, useRef } from "react";
+import { ref, onValue, update, get, query, limitToLast, orderByChild } from "firebase/database";
 import { rtdb, auth, storage, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
-import { LogOut, User as UserIcon, RefreshCw, Search, MoreVertical, Camera } from "lucide-react";
+import { LogOut, User as UserIcon, RefreshCw, Search, MoreVertical, Camera, UserPlus, Users as GroupIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { updateProfile } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
-import { useRef } from "react";
-import { UserPlus } from "lucide-react";
 import AddContactModal from "@/components/Chat/AddContactModal";
 import CreateGroupModal from "@/components/Chat/CreateGroupModal";
-import { Users as GroupIcon } from "lucide-react";
+import { sendPushNotification } from "@/lib/sendNotification";
 
 interface UserData {
     uid: string;
@@ -27,7 +25,9 @@ interface UserData {
     id?: string;
     participants?: Record<string, boolean>;
     lastMessage?: string;
+    lastMessageSenderId?: string;
     lastMessageTimestamp?: number;
+    unreadCount?: number;
 }
 
 interface SidebarProps {
@@ -43,7 +43,12 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
     const [uploading, setUploading] = useState(false);
     const [typingUsers, setTypingUsers] = useState<Record<string, boolean>>({});
     const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+    const [isAddContactOpen, setIsAddContactOpen] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
+    // Pull to refresh logic
+    const [pullDiff, setPullDiff] = useState(0);
+    const touchStartY = useRef(0);
+    const listRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
@@ -57,11 +62,8 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
         const contactsRef = ref(rtdb, `users/${user.uid}/contacts`);
         const groupsRef = ref(rtdb, `users/${user.uid}/groups`);
 
-        // Fetch Contacts & Groups in parallel logic could be better, but nesting listeners is safe for realtime
         const unsubscribe = onValue(contactsRef, async (contactSnapshot) => {
-            const loadedItems: UserData[] = [];
-
-            // 1. Process Contacts
+            const loadedContacts: UserData[] = [];
             if (contactSnapshot.exists()) {
                 const contactsData = contactSnapshot.val();
                 const contactIds = Object.keys(contactsData);
@@ -69,7 +71,7 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                 for (const contactId of contactIds) {
                     const userSnap = await get(ref(rtdb, `users/${contactId}`));
                     if (userSnap.exists()) {
-                        loadedItems.push({
+                        loadedContacts.push({
                             uid: contactId,
                             ...userSnap.val()
                         });
@@ -77,17 +79,17 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                 }
             }
 
-            // 2. Process Groups (Realtime listener for group IDs)
+            // Sync with groups
             onValue(groupsRef, async (groupSnapshot) => {
-                const groupItems: UserData[] = [];
+                const loadedGroups: UserData[] = [];
                 if (groupSnapshot.exists()) {
                     const groupIds = Object.keys(groupSnapshot.val());
                     for (const groupId of groupIds) {
                         const groupSnap = await get(ref(rtdb, `groups/${groupId}`));
                         if (groupSnap.exists()) {
                             const gData = groupSnap.val();
-                            groupItems.push({
-                                uid: groupId, // Use ID as UID for uniform handling
+                            loadedGroups.push({
+                                uid: groupId,
                                 displayName: gData.name,
                                 photoURL: gData.photoURL,
                                 isGroup: true,
@@ -97,14 +99,10 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                     }
                 }
 
-                // Merge and Set
-                // Ideally, we should sort by last message timestamp if available
-                const allItems = [...loadedItems, ...groupItems];
-                // Simple sort by name for now, or lastMessageTimestamp if we had it for all
+                const allItems = [...loadedContacts, ...loadedGroups];
                 setUsers(allItems);
                 setLoading(false);
-
-            }, { onlyOnce: false }); // Groups might change
+            }, { onlyOnce: false });
 
         }, (error) => {
             console.error("Error fetching contacts:", error);
@@ -114,17 +112,73 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
         return () => unsubscribe();
     }, [user]);
 
-    // Listen for typing status from ALL chats I'm involved in
+    // Fetch Last Message & Unread Counts for each user
     useEffect(() => {
         if (!user || users.length === 0) return;
 
-        const typingStatus: Record<string, boolean> = {};
+        const unsubscribes: (() => void)[] = [];
+
+        users.forEach((contact) => {
+            const chatId = contact.isGroup
+                ? contact.uid
+                : [user.uid, contact.uid].sort().join("_");
+
+            const messagesRef = query(ref(rtdb, `chats/${chatId}/messages`), limitToLast(50));
+
+            const unsub = onValue(messagesRef, (snapshot) => {
+                let lastMsg: any = null;
+                let unreadProxy = 0;
+
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    const messages = Object.values(data);
+
+                    // Get last message
+                    lastMsg = messages[messages.length - 1];
+
+                    // Calculate unread count (messages aimed at ME that are NOT read)
+                    unreadProxy = messages.filter((m: any) =>
+                        m.receiverId === user.uid && !m.read
+                    ).length;
+                }
+
+                setUsers(prev => prev.map(u => {
+                    if (u.uid === contact.uid) {
+                        return {
+                            ...u,
+                            lastMessage: lastMsg ? (lastMsg.text || (lastMsg.image ? "📷 Image" : "")) : "",
+                            lastMessageSenderId: lastMsg?.senderId,
+                            lastMessageTimestamp: lastMsg?.timestamp,
+                            unreadCount: unreadProxy
+                        };
+                    }
+                    return u;
+                }));
+            });
+
+            unsubscribes.push(unsub);
+        });
+
+        return () => {
+            unsubscribes.forEach(u => u());
+        };
+    }, [users.length]); // Re-run only if user list filtered length changes (simplification, ideally check IDs)
+
+    // Listen for typing status
+    useEffect(() => {
+        if (!user || users.length === 0) return;
+
         const unsubscribes: (() => void)[] = [];
 
         users.forEach(otherUser => {
-            const chatId = [user.uid, otherUser.uid].sort().join("_");
-            const typingRef = ref(rtdb, `chats/${chatId}/typing/${otherUser.uid}`);
+            const chatId = otherUser.isGroup
+                ? otherUser.uid
+                : [user.uid, otherUser.uid].sort().join("_");
 
+            // For groups, typing indicator is complex, simplified for 1:1
+            if (otherUser.isGroup) return;
+
+            const typingRef = ref(rtdb, `chats/${chatId}/typing/${otherUser.uid}`);
             const unsub = onValue(typingRef, (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
@@ -140,42 +194,22 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
             unsubscribes.push(unsub);
         });
 
-        return () => {
-            unsubscribes.forEach(unsub => unsub());
-        };
-    }, [users, user]);
+        return () => unsubscribes.forEach(unsub => unsub());
+    }, [users.length]); // Simplified dependency
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0] && user) {
             const file = e.target.files[0];
             setUploading(true);
-
             try {
                 const imageRef = storageRef(storage, `profile_images/${user.uid}`);
                 await uploadBytes(imageRef, file);
                 const downloadURL = await getDownloadURL(imageRef);
-
-                // Update Auth Profile
                 await updateProfile(user, { photoURL: downloadURL });
-
-                // Update Firestore User Document
-                await updateDoc(doc(db, "users", user.uid), {
-                    photoURL: downloadURL
-                });
-
-                // Update Realtime Database User Node (since we fetch users from here)
-                await update(ref(rtdb, `users/${user.uid}`), {
-                    photoURL: downloadURL
-                });
-
-                // Start Notification - only on client side
-                if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-                    new Notification("Profile Updated", { body: "Your profile photo has been updated successfully!" });
-                }
-
+                await updateDoc(doc(db, "users", user.uid), { photoURL: downloadURL });
+                await update(ref(rtdb, `users/${user.uid}`), { photoURL: downloadURL });
             } catch (error) {
                 console.error("Error uploading image:", error);
-                alert("Failed to upload image. Please try again.");
             } finally {
                 setUploading(false);
             }
@@ -187,46 +221,50 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
         router.push("/login");
     };
 
-    // Pull to Refresh Logic
-    const [pullDiff, setPullDiff] = useState(0);
-    const [isAddContactOpen, setIsAddContactOpen] = useState(false);
-    const touchStartY = useRef(0);
-    const listRef = useRef<HTMLDivElement>(null);
+    // Sort users: Typing > Unread > Last Message > Name
+    const sortedUsers = [...users].sort((a, b) => {
+        const aTyping = typingUsers[a.uid];
+        const bTyping = typingUsers[b.uid];
+        if (aTyping && !bTyping) return -1;
+        if (!aTyping && bTyping) return 1;
 
-    const handleTouchStart = (e: React.TouchEvent) => {
-        if (listRef.current?.scrollTop === 0) {
-            touchStartY.current = e.touches[0].clientY;
-        }
-    };
+        if ((a.lastMessageTimestamp || 0) > (b.lastMessageTimestamp || 0)) return -1;
+        if ((a.lastMessageTimestamp || 0) < (b.lastMessageTimestamp || 0)) return 1;
 
-    const handleTouchMove = (e: React.TouchEvent) => {
-        if (listRef.current?.scrollTop === 0 && touchStartY.current) {
-            const currentY = e.touches[0].clientY;
-            const diff = currentY - touchStartY.current;
-            if (diff > 0) {
-                // e.preventDefault(); // Could be aggressive
-                setPullDiff(diff);
-            }
-        }
-    };
+        return (a.displayName || "").localeCompare(b.displayName || "");
+    });
 
-    const handleTouchEnd = () => {
-        if (pullDiff > 120) { // Threshold to refresh
-            window.location.reload();
-        }
-        setPullDiff(0);
-        touchStartY.current = 0;
-    };
-
-    // Filter users based on search
-    const filteredUsers = users.filter((u) =>
+    const filteredUsers = sortedUsers.filter((u) =>
         u.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const formatTime = (timestamp?: number) => {
+        if (!timestamp) return "";
+        const date = new Date(timestamp);
+        const now = new Date();
+        if (date.toDateString() === now.toDateString()) {
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        return date.toLocaleDateString();
+    };
+
+    const testNotification = async () => {
+        if ("Notification" in window) {
+            const perm = await Notification.requestPermission();
+            if (perm === "granted") {
+                new Notification("Test Notification", {
+                    body: "This is a test notification from Sidebar!",
+                    icon: "/logo.png"
+                });
+            } else {
+                alert("Notification permission denied!");
+            }
+        }
+    };
+
     return (
         <div className="flex h-full w-full flex-col bg-[#111b21]">
-            {/* Header - WhatsApp Style */}
             <div className="flex items-center justify-between px-4 py-3 bg-[#202c33]">
                 <div className="flex items-center space-x-3">
                     <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden cursor-pointer">
@@ -248,99 +286,38 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                                 <Camera className="text-white" size={20} />
                             </div>
                         )}
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                        />
+                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                     </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                    <button
-                        onClick={() => setIsAddContactOpen(true)}
-                        className="rounded-full p-2 text-[#aebac1] hover:bg-[#374248] transition-colors"
-                        title="New Chat"
-                    >
+                    <button onClick={() => setIsAddContactOpen(true)} className="rounded-full p-2 text-[#aebac1] hover:bg-[#374248] transition-colors" title="New Chat">
                         <UserPlus size={20} />
                     </button>
-                    <button
-                        onClick={handleLogout}
-                        className="rounded-full p-2 text-[#aebac1] hover:bg-[#374248] transition-colors"
-                        title="Logout"
-                    >
+                    <button onClick={handleLogout} className="rounded-full p-2 text-[#aebac1] hover:bg-[#374248] transition-colors" title="Logout">
                         <LogOut size={20} />
                     </button>
                     <div className="relative">
-                        <button
-                            onClick={() => setShowMenu(!showMenu)}
-                            className="rounded-full p-2 text-[#aebac1] hover:bg-[#374248] transition-colors"
-                        >
+                        <button onClick={() => setShowMenu(!showMenu)} className="rounded-full p-2 text-[#aebac1] hover:bg-[#374248] transition-colors">
                             <MoreVertical size={20} />
                         </button>
                         {showMenu && (
                             <div className="absolute right-0 top-10 w-48 bg-[#233138] rounded-md shadow-xl py-2 z-50">
-                                <button
-                                    onClick={() => {
-                                        setShowMenu(false);
-                                        setIsCreateGroupOpen(true);
-                                    }}
-                                    className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm"
-                                >
-                                    New Group
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setShowMenu(false);
-                                        // Settings or other actions could go here
-                                    }}
-                                    className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm"
-                                >
-                                    Settings
-                                </button>
+                                <button onClick={() => { setShowMenu(false); setIsCreateGroupOpen(true); }} className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm">New Group</button>
+                                <button onClick={() => { setShowMenu(false); testNotification(); }} className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm">Test Notification</button>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* Search Bar */}
             <div className="px-3 py-2 bg-[#111b21]">
                 <div className="flex items-center bg-[#202c33] rounded-lg px-4 py-2">
                     <Search size={18} className="text-[#8696a0] mr-4" />
-                    <input
-                        type="text"
-                        placeholder="Search or start new chat"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="flex-1 bg-transparent text-[#e9edef] placeholder-[#8696a0] text-sm outline-none"
-                    />
+                    <input type="text" placeholder="Search or start new chat" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="flex-1 bg-transparent text-[#e9edef] placeholder-[#8696a0] text-sm outline-none" />
                 </div>
             </div>
 
-            {/* User List */}
-            <div
-                className="flex-1 overflow-y-auto relative"
-                ref={listRef}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-            >
-                {/* Pull Indicator */}
-                <div
-                    className="flex justify-center overflow-hidden transition-all duration-200"
-                    style={{ height: pullDiff > 0 ? Math.min(pullDiff * 0.4, 80) : 0 }}
-                >
-                    <div className="flex items-center text-[#8696a0] p-2">
-                        {pullDiff > 120 ? (
-                            <RefreshCw className="animate-spin" size={24} />
-                        ) : (
-                            <span className="text-xs">Pull down to refresh</span>
-                        )}
-                    </div>
-                </div>
-
+            <div className="flex-1 overflow-y-auto">
                 {loading ? (
                     <div className="flex items-center justify-center h-40">
                         <RefreshCw className="animate-spin text-[#8696a0]" size={24} />
@@ -348,10 +325,7 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                 ) : filteredUsers.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-40 text-[#8696a0] p-4 text-center">
                         <UserIcon size={32} className="mb-2 opacity-50" />
-                        <p>{searchQuery ? "No users found" : "No other users yet."}</p>
-                        <p className="text-xs mt-1">
-                            {searchQuery ? "Try a different search" : "Ask a friend to sign up!"}
-                        </p>
+                        <p>{searchQuery ? "No users found" : "No contacts yet."}</p>
                     </div>
                 ) : (
                     filteredUsers.map((otherUser) => (
@@ -363,58 +337,52 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                                 selectedUser?.uid === otherUser.uid && "bg-[#2a3942]"
                             )}
                         >
-                            {/* Avatar */}
                             <div className="flex-shrink-0 flex h-12 w-12 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden mr-3">
                                 {otherUser.photoURL ? (
-                                    <img
-                                        src={otherUser.photoURL}
-                                        alt={otherUser.displayName}
-                                        className="h-full w-full object-cover"
-                                    />
+                                    <img src={otherUser.photoURL} alt={otherUser.displayName} className="h-full w-full object-cover" />
                                 ) : (
                                     <span className="text-lg font-medium text-[#cfd8dc]">
-                                        {otherUser.isGroup ? (
-                                            <GroupIcon size={24} />
-                                        ) : (
-                                            otherUser.displayName?.[0]?.toUpperCase() || "?"
-                                        )}
+                                        {otherUser.isGroup ? <GroupIcon size={24} /> : (otherUser.displayName?.[0]?.toUpperCase() || "?")}
                                     </span>
                                 )}
                             </div>
 
-                            {/* User Info */}
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between">
                                     <h3 className="font-medium text-[#e9edef] truncate text-base">
                                         {otherUser.displayName || "Unknown"}
                                     </h3>
                                     <span className="text-xs text-[#8696a0] ml-2 flex-shrink-0">
-                                        {/* Time placeholder */}
+                                        {formatTime(otherUser.lastMessageTimestamp)}
                                     </span>
                                 </div>
-                                {typingUsers[otherUser.uid] ? (
-                                    <p className="text-sm text-[#25d366] font-medium mt-0.5 truncate">
-                                        typing...
-                                    </p>
-                                ) : (
-                                    <p className="text-sm text-[#8696a0] truncate mt-0.5">
-                                        {otherUser.email}
-                                    </p>
-                                )}
+                                <div className="flex items-center justify-between mt-0.5">
+                                    <div className="truncate flex-1 pr-2">
+                                        {typingUsers[otherUser.uid] ? (
+                                            <p className="text-sm text-[#25d366] font-medium truncate">typing...</p>
+                                        ) : (
+                                            <p className="text-sm text-[#8696a0] truncate">
+                                                {/* Show sender prefix only if it's the current user sending, OR for groups show sender name */}
+                                                {otherUser.lastMessageSenderId === user?.uid && <span className="text-[#8696a0] mr-1">You:</span>}
+                                                {otherUser.lastMessage || otherUser.email}
+                                            </p>
+                                        )}
+                                    </div>
+                                    {/* Unread Badge */}
+                                    {!!otherUser.unreadCount && otherUser.unreadCount > 0 && (
+                                        <div className="flex-shrink-0 bg-[#25d366] text-[#111b21] text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                                            {otherUser.unreadCount > 99 ? '99+' : otherUser.unreadCount}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ))
                 )}
             </div>
 
-            <AddContactModal
-                isOpen={isAddContactOpen}
-                onClose={() => setIsAddContactOpen(false)}
-            />
-            <CreateGroupModal
-                isOpen={isCreateGroupOpen}
-                onClose={() => setIsCreateGroupOpen(false)}
-            />
+            <AddContactModal isOpen={isAddContactOpen} onClose={() => setIsAddContactOpen(false)} />
+            <CreateGroupModal isOpen={isCreateGroupOpen} onClose={() => setIsCreateGroupOpen(false)} />
         </div>
     );
 }
