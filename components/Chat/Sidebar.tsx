@@ -12,6 +12,7 @@ import { updateProfile } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import AddContactModal from "@/components/Chat/AddContactModal";
 import CreateGroupModal from "@/components/Chat/CreateGroupModal";
+import SettingsModal from "@/components/Chat/SettingsModal";
 import { sendPushNotification } from "@/lib/sendNotification";
 
 interface UserData {
@@ -43,6 +44,7 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
     const [uploading, setUploading] = useState(false);
     const [typingUsers, setTypingUsers] = useState<Record<string, boolean>>({});
     const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAddContactOpen, setIsAddContactOpen] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     // Pull to refresh logic
@@ -303,6 +305,7 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                         {showMenu && (
                             <div className="absolute right-0 top-10 w-48 bg-[#233138] rounded-md shadow-xl py-2 z-50">
                                 <button onClick={() => { setShowMenu(false); setIsCreateGroupOpen(true); }} className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm">New Group</button>
+                                <button onClick={() => { setShowMenu(false); setIsSettingsOpen(true); }} className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm">Settings</button>
                                 <button onClick={() => { setShowMenu(false); testNotification(); }} className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm">Test Notification</button>
                             </div>
                         )}
@@ -383,6 +386,7 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
 
             <AddContactModal isOpen={isAddContactOpen} onClose={() => setIsAddContactOpen(false)} />
             <CreateGroupModal isOpen={isCreateGroupOpen} onClose={() => setIsCreateGroupOpen(false)} />
+            <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
         </div>
     );
 }

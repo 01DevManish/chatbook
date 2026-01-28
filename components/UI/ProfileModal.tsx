@@ -13,6 +13,7 @@ interface UserData {
     createdAt?: number;
     isGroup?: boolean;
     participants?: Record<string, boolean>;
+    about?: string;
 }
 
 interface ParticipantData {
@@ -99,6 +100,14 @@ export default function ProfileModal({ isOpen, onClose, user, participants }: Pr
                                     {user.lastSeen ? formatTime(user.lastSeen) : "Online"}
                                 </span>
                             </div>
+
+                            {/* About */}
+                            {user.about && (
+                                <div className="py-3 border-b border-[#2a3942]">
+                                    <span className="text-[#8696a0] text-sm block mb-1">About</span>
+                                    <span className="text-[#e9edef] text-sm font-medium">{user.about}</span>
+                                </div>
+                            )}
 
                             {/* Joined */}
                             <div className="flex justify-between items-center py-3 border-b border-[#2a3942]">
