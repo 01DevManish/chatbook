@@ -33,4 +33,4 @@ if (typeof window !== "undefined") {
     });
 }
 
-export { auth, db, rtdb, storage, analytics, googleProvider };
+export { app, auth, db, rtdb, storage, analytics, googleProvider };

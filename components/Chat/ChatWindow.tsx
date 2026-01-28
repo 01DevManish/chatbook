@@ -14,6 +14,7 @@ import ImageModal from "@/components/UI/ImageModal";
 import WallpaperModal from "./WallpaperModal";
 import ProfileModal from "@/components/UI/ProfileModal";
 import { uploadToCloudinary } from "@/lib/cloudinary";
+import { sendPushNotification } from "@/lib/sendNotification";
 
 interface UserData {
     uid: string;
@@ -470,6 +471,15 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
             const messagesRef = ref(rtdb, `chats/${chatId}/messages`);
             await push(messagesRef, messageData);
 
+            // Send push notification to receiver
+            sendPushNotification({
+                receiverId: selectedUser.uid,
+                senderName: user.displayName || "Someone",
+                messageText: msgText || (imageUrl ? "📷 Image" : ""),
+                chatId,
+                senderId: user.uid,
+            });
+
         } catch (error) {
             console.error("Error sending message:", error);
         }
@@ -547,7 +557,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     };
 
     return (
-        <div className="fixed inset-0 flex flex-col bg-[#0b141a]">
+        <div className="fixed inset-0 sm:relative sm:inset-auto flex flex-col bg-[#0b141a] h-full w-full">
             {/* Header - Fixed at Top - WhatsApp Exact Style */}
             <header className="flex-shrink-0 flex items-center gap-2 bg-[#202c33] px-2 py-1.5 sm:px-4 sm:py-2.5 z-50 border-b border-[#2a3942]/30" style={{ paddingTop: 'max(6px, env(safe-area-inset-top))' }}>
                 <button

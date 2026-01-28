@@ -1,110 +1,143 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ref, onChildAdded, onValue, query, orderByChild, limitToLast, get } from "firebase/database";
+import { ref, onChildAdded, query, limitToLast, remove } from "firebase/database";
 import { rtdb } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { initOneSignal, setOneSignalUserId, requestOneSignalPermission } from "@/lib/onesignal";
 
 export default function NotificationManager() {
     const { user } = useAuth();
     const processedMessagesRef = useRef<Set<string>>(new Set());
     const initialLoadRef = useRef(true);
+    const oneSignalInitializedRef = useRef(false);
 
+    // Initialize OneSignal when component mounts
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        initOneSignal();
+    }, []);
+
+    // Set OneSignal user ID when user logs in
+    useEffect(() => {
+        if (!user || oneSignalInitializedRef.current) return;
+
+        const setupOneSignal = async () => {
+            try {
+                // Wait a bit for OneSignal SDK to load
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Set the user ID in OneSignal
+                await setOneSignalUserId(user.uid);
+
+                // Request notification permission
+                await requestOneSignalPermission();
+
+                oneSignalInitializedRef.current = true;
+                console.log("OneSignal setup complete for user:", user.uid);
+            } catch (error) {
+                console.error("Error setting up OneSignal:", error);
+            }
+        };
+
+        setupOneSignal();
+    }, [user]);
+
+    // Listen for notifications stored in Firebase (fallback)
     useEffect(() => {
         if (!user) return;
 
-        // Request permission - only on client side
-        if (typeof window !== "undefined" && "Notification" in window) {
-            if (Notification.permission === "default") {
-                Notification.requestPermission();
+        const notificationsRef = ref(rtdb, `notifications/${user.uid}`);
+
+        const unsubscribe = onChildAdded(notificationsRef, (snapshot) => {
+            const notification = snapshot.val();
+            const notificationId = snapshot.key;
+
+            if (!notification || !notificationId) return;
+
+            if (processedMessagesRef.current.has(notificationId)) return;
+            processedMessagesRef.current.add(notificationId);
+
+            // Skip old notifications
+            if (Date.now() - notification.timestamp > 30000) {
+                remove(ref(rtdb, `notifications/${user.uid}/${notificationId}`));
+                return;
             }
-        }
 
-        // We need to listen to all chats where the user is a participant.
-        // Since we don't have a direct "my_chats" index effortlessly available without structuring,
-        // and iterating all chats might be heavy if there are many, we will rely on a "user_chats" node if it exists,
-        // OR for this scale, we can listen to "chats" but carefully.
+            // Show browser notification (fallback if OneSignal doesn't catch it)
+            if (typeof window !== "undefined" && "Notification" in window) {
+                if (Notification.permission === "granted" && document.visibilityState === "hidden") {
+                    const notif = new Notification(notification.title || "New Message", {
+                        body: notification.body || "You have a new message",
+                        icon: "/logo.png",
+                        tag: notification.chatId || "chatbook-notification",
+                    });
 
-        // Better approach for this app's current structure (assuming small scale):
-        // List all chats, find ones where user is participant.
-        // Ideally, we should have a `users/{userId}/chats` node. 
-        // Let's assume we iterate `chats` for now as per previous Sidebar logic, but let's see if we can optimize.
+                    setTimeout(() => notif.close(), 5000);
 
-        // Actually, Sidebar fetches `users`. ChatWindow fetches `messages`.
-        // Let's try to listen to the `chats` node limit directly? 
-        // Or better: Let's assume the user is receiving messages in specific chat IDs.
-        // We can just listen to the global `chats` node for `child_changed`? No, that's too much data.
+                    notif.onclick = () => {
+                        window.focus();
+                        notif.close();
+                    };
+                }
+            }
 
-        // Let's stick to the plan: Since Sidebar doesn't have a "my chats" list, we might have to scan.
-        // EXCEPT: Chat IDs are `uid1_uid2` (sorted).
-        // So we can construct potential chat IDs with every other user? No, that's O(N).
+            // Clean up
+            setTimeout(() => {
+                remove(ref(rtdb, `notifications/${user.uid}/${notificationId}`));
+            }, 1000);
+        });
 
-        // Let's verify if we can just listen to "chats" and filter on client for now (MVP).
-        // Real production apps use a dedicated notifications node or functions.
+        return () => unsubscribe();
+    }, [user]);
+
+    // Listen for direct messages (in-app notification fallback)
+    useEffect(() => {
+        if (!user) return;
 
         const chatsRef = ref(rtdb, "chats");
 
-        // Listen for ANY changes in chats might be heavy. 
-        // Alternative: The user wants basic notifications.
-        // Let's try to listen to `chats` but only for the last changed ones?
-
-        // Let's implement a smarter way: 
-        // We will listen to `chats` but assume we only care about messages addressed to US.
-        // Since we can't query deep properties easily across all paths in RTDB without indexing,
-        // Client side filtering of the "chats" listener is the feasible way for this demo structure.
-
         const unsubscribe = onChildAdded(chatsRef, (snapshot) => {
             const chatId = snapshot.key;
-            if (!chatId || !chatId.includes(user.uid)) return; // Only listen to chats involving me
+            if (!chatId || !chatId.includes(user.uid)) return;
 
             const messagesRef = ref(rtdb, `chats/${chatId}/messages`);
             const q = query(messagesRef, limitToLast(1));
 
             return onChildAdded(q, (msgSnapshot) => {
-                if (initialLoadRef.current) return; // Skip initial logic
+                if (initialLoadRef.current) return;
 
                 const msg = msgSnapshot.val();
                 if (!msg) return;
 
-                // Check if already processed
-                if (processedMessagesRef.current.has(msgSnapshot.key as string)) return;
-                processedMessagesRef.current.add(msgSnapshot.key as string);
+                const msgKey = `msg_${msgSnapshot.key}`;
+                if (processedMessagesRef.current.has(msgKey)) return;
+                processedMessagesRef.current.add(msgKey);
 
-                // Notification Logic
                 if (
                     msg.receiverId === user.uid &&
                     !msg.read &&
-                    typeof window !== "undefined" &&
                     typeof document !== "undefined" &&
-                    document.visibilityState === "hidden" // Only notify if app is in background/other tab
+                    document.visibilityState === "hidden"
                 ) {
-                    // Check if we are NOT in the active chat window for this chat (simplified)
-                    // Actually visibilityState hidden is good enough for "background" notifications.
-                    // But user wants "notification aae" (notification should come).
-
                     if ("Notification" in window && Notification.permission === "granted") {
                         new Notification("New Message", {
-                            body: "❤️", // The heart emoji as requested
-                            icon: "/logo.png", // Ensure this exists or use a default
-                            tag: chatId // Overwrite old notifications from same chat
+                            body: msg.text || "📷 Image",
+                            icon: "/logo.png",
+                            tag: chatId,
                         });
                     }
                 }
             });
         });
 
-        // Set initial load to false after a short delay so we don't notify for existing messages
         setTimeout(() => {
             initialLoadRef.current = false;
         }, 2000);
 
-        return () => {
-            // unsubscribe... (onChildAdded returns an unsubscribe function? No, Firebase v9 modular style is different)
-            // We need to manage subscriptions carefully.
-            // For this MVP, let's simplify.
-            // We can't easily unsubscribe from dynamic listeners inside a listener without tracking them.
-        };
+        return () => { };
     }, [user]);
 
-    return null; // Headless component
+    return null;
 }
