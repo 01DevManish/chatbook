@@ -138,9 +138,9 @@ export default function MessageBubble({
                     onTouchEnd={handleTouchEnd}
                     onTouchCancel={handleTouchEnd}
                     className={cn(
-                        "max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] rounded-2xl px-4 py-3 shadow-md relative transition-all hover:shadow-lg select-none",
+                        "max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] rounded-lg pl-2 pr-2 py-1 shadow-sm relative transition-all hover:shadow-md select-none",
                         isMe
-                            ? "bg-gradient-to-br from-[#005c4b] to-[#004a3c] text-[#e9edef] rounded-tr-none"
+                            ? "bg-[#005c4b] text-[#e9edef] rounded-tr-none"
                             : "bg-[#202c33] text-[#e9edef] rounded-tl-none"
                     )}
                 >
@@ -300,32 +300,27 @@ export default function MessageBubble({
                         </div>
                     )}
 
-                    {message.text && (
-                        <p className="text-[14.2px] leading-[19px] break-words whitespace-pre-wrap">{message.text}</p>
-                    )}
+                    <div className="text-[14.2px] leading-[19px] text-[#e9edef] whitespace-pre-wrap break-words relative">
+                        {message.text}
+                        {message.edited && <span className="text-[11px] text-[#8696a0] italic ml-1">edited</span>}
 
-                    {/* Edited indicator */}
-                    {message.edited && (
-                        <span className="text-[10px] text-[#8696a0] italic ml-1">edited</span>
-                    )}
+                        {/* Invisible spacer to prevent overlap */}
+                        <span className="inline-block w-[70px] h-[15px] opacity-0 pointer-events-none"></span>
 
-                    <div
-                        className={cn(
-                            "mt-1 text-[11px] flex items-center gap-1 opacity-60 h-[15px]",
-                            isMe ? "justify-end text-[#e9edef]" : "justify-end text-[#e9edef]"
-                        )}
-                        style={{ float: 'right', marginLeft: '8px' }}
-                    >
-                        {message.timestamp
-                            ? formatDate(new Date(message.timestamp))
-                            : "Sending..."}
-
-                        {isMe && message.read && (
-                            <span className="text-[#53bdeb] font-medium ml-1">✓✓</span>
-                        )}
-                        {isMe && !message.read && (
-                            <span className="text-[#8696a0] ml-1">✓✓</span>
-                        )}
+                        {/* Timestamp & Status: Floated to stick to bottom right */}
+                        <div className="float-right flex items-center gap-1 ml-1 -mt-5 h-[15px] align-bottom transform translate-y-[4px]">
+                            <span className="text-[11px] text-[#8696a0] min-w-fit antialiased">
+                                {message.timestamp ? formatDate(new Date(message.timestamp)) : "..."}
+                            </span>
+                            {isMe && (
+                                <span className={cn("ml-[2px]", message.read ? "text-[#53bdeb]" : "text-[#8696a0]")}>
+                                    <svg viewBox="0 0 16 11" height="11" width="16" preserveAspectRatio="xMidYMid meet" className="block fill-current" style={{ display: 'block' }}>
+                                        <path d="M11.5153 0.270923C11.1611 -0.089856 10.5878 -0.0905476 10.2343 0.269434L4.85694 5.75961L2.8312 3.75058C2.4727 3.39501 1.89436 3.3986 1.54041 3.75861C1.1895 4.11553 1.19232 4.69083 1.54668 5.04416L4.22558 7.71537C4.40263 7.8919 4.63935 7.98502 4.8817 7.98144C5.12285 7.9778 5.35336 7.8778 5.52554 7.702L11.5033 1.56475C11.8543 1.20443 11.8573 0.628929 11.5153 0.270923Z" />
+                                        <path d="M14.9095 0.270923C14.5553 -0.089856 13.982 -0.0905476 13.6285 0.269434L13.1165 0.792443C12.7816 1.13452 12.7661 1.68114 13.0822 2.04169C13.0822 2.04169 13.0826 2.04213 13.083 2.04257C13.083 2.04257 14.8058 4.02029 14.8058 4.02029C15.0116 4.25656 15.0116 4.60948 14.8058 4.84575L9.62319 10.7963C9.29654 11.1714 8.71887 11.1983 8.36034 10.8562L7.69708 10.2234C7.69578 10.2222 7.69449 10.2209 7.6932 10.2197C7.30606 9.85025 7.28854 9.23232 7.65349 8.8407L8.71186 7.62551C8.71186 7.62551 6.84055 5.7562 6.84055 5.7562L7.50294 5.08013C7.50294 5.08013 9.40776 6.97985 9.40776 6.97985C9.40776 6.97985 14.8975 1.56475 14.8975 1.56475C15.2486 1.20443 15.2515 0.628929 14.9095 0.270923Z" />
+                                    </svg>
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
 
