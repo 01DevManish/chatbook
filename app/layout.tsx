@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
@@ -56,6 +57,12 @@ export default function RootLayout({
           <CallProvider>
             <NotificationManager />
             <CallModal />
+            <Script
+              async
+              src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6726509196448329"
+              crossOrigin="anonymous"
+              strategy="afterInteractive"
+            />
             {children}
           </CallProvider>
         </AuthProvider>
