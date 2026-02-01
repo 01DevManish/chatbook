@@ -61,6 +61,15 @@ export default async function BlogPostPage({ params }: PageProps) {
                     <div className="inline-block px-3 py-1 bg-[#00a884]/10 text-[#00a884] rounded-full text-sm font-medium mb-4">
                         {post.category}
                     </div>
+                    {post.image && (
+                        <div className="relative w-full aspect-video mb-8 rounded-2xl overflow-hidden shadow-2xl border border-[#2a3942]">
+                            <img
+                                src={post.image}
+                                alt={post.imageAlt || post.title}
+                                className="object-cover w-full h-full"
+                            />
+                        </div>
+                    )}
                     <h1 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">
                         {post.title}
                     </h1>

@@ -170,8 +170,18 @@ export default function LandingPage() {
               <div key={post.slug} className="group">
                 <Link href={`/blog/${post.slug}`}>
                   <div className="bg-[#202c33] rounded-xl overflow-hidden h-full flex flex-col hover:ring-2 hover:ring-[#00a884] transition-all">
-                    <div className="h-48 bg-[#2a3942] flex items-center justify-center text-[#54656f] group-hover:bg-[#0b141a] transition-colors">
-                      <span className="text-4xl">📝</span>
+                    <div className="h-48 bg-[#2a3942] relative overflow-hidden group-hover:bg-[#0b141a] transition-colors">
+                      {post.image ? (
+                        <img
+                          src={post.image}
+                          alt={post.imageAlt || post.title}
+                          className="object-cover w-full h-full transform group-hover:scale-110 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-[#54656f]">
+                          <span className="text-4xl">📝</span>
+                        </div>
+                      )}
                     </div>
                     <div className="p-6 flex flex-col flex-1">
                       <span className="text-xs font-bold text-[#00a884] mb-2">{post.category}</span>

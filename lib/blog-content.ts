@@ -8,12 +8,16 @@ export interface BlogPost {
     category: string;
     tags: string[];
     keywords: string[]; // For SEO meta keywods
+    image?: string;
+    imageAlt?: string;
 }
 
 export const BLOG_POSTS: BlogPost[] = [
     // --- Privacy & Security ---
     {
         slug: "what-is-end-to-end-encryption",
+        image: "https://pollinations.ai/p/end-to-end-encryption-abstract-security-lock-digital-blue",
+        imageAlt: "Abstract illustration of end-to-end encryption with a digital lock",
         title: "What Is End-to-End Encryption and How It Protects Your Chats",
         excerpt: "Understand the technology that keeps your private conversations truly private, ensuring only you and the recipient can read his messages.",
         date: "Feb 1, 2026",
@@ -50,6 +54,8 @@ At **Chatbook**, we value your privacy above all else. This technology is the ba
     },
     {
         slug: "how-secure-chat-apps-work",
+        image: "https://pollinations.ai/p/secure-chat-application-architecture-server-network-wires-glowing-data",
+        imageAlt: "Diagram of secure chat application architecture",
         title: "How Secure Chat Applications Work Behind the Scenes",
         excerpt: "A deep dive into the architecture of modern messaging apps, from message queues to socket connections.",
         date: "Feb 2, 2026",
@@ -82,6 +88,8 @@ Images and voice notes aren't sent through the socket directly—they are too bi
     },
     {
         slug: "online-chat-privacy",
+        image: "https://pollinations.ai/p/online-privacy-person-hiding-behind-mask-digital-data-protection",
+        imageAlt: "Concept art representing online chat privacy",
         title: "Online Chat Privacy: How Your Messages Are Protected",
         excerpt: "Privacy is more than just technology; it's a commitment. Learn how metadata and behavioral analysis affect your privacy.",
         date: "Feb 3, 2026",
@@ -114,6 +122,8 @@ Technology can only go so far.
     },
     {
         slug: "encrypted-vs-normal-messaging",
+        image: "https://pollinations.ai/p/safe-versus-unsafe-messaging-lock-versus-open-envelope-comparison",
+        imageAlt: "Visual comparison between encrypted and normal messaging",
         title: "Difference Between Encrypted Chat and Normal Messaging Apps",
         excerpt: "Not all chat apps are created equal. We compare standard SMS/Chat vs. E2EE alternatives.",
         date: "Feb 4, 2026",
@@ -145,6 +155,8 @@ For casual "Unknown" verification codes, SMS is fine. For personal, intimate, or
     },
     {
         slug: "keep-chats-safe-from-hackers",
+        image: "https://pollinations.ai/p/hacker-hoodie-laptop-matrix-code-red-alert-security-shield",
+        imageAlt: "Digital security concept protecting against hackers",
         title: "How to Keep Your Online Chats Safe from Hackers",
         excerpt: "Practical tips to harden your account security and prevent social engineering attacks.",
         date: "Feb 5, 2026",
@@ -172,6 +184,8 @@ Ensure your phone itself has a strong passcode. Notifications on the lock screen
     },
     {
         slug: "why-privacy-matters",
+        image: "https://pollinations.ai/p/digital-privacy-rights-freedom-padlock-glowing-gold",
+        imageAlt: "Glowing golden padlock symbolizing privacy rights",
         title: "Why Privacy Matters in Messaging Applications",
         excerpt: "Privacy isn't just about hiding secrets; it's about autonomy, freedom, and personal security.",
         date: "Feb 6, 2026",
@@ -196,6 +210,8 @@ When platforms read your messages, they build a psychological profile of you to 
     },
     {
         slug: "can-chat-apps-read-messages",
+        image: "https://pollinations.ai/p/reading-private-messages-magnifying-glass-digital-text",
+        imageAlt: "Magnifying glass examining digital text",
         title: "Can Chat Apps Read Your Messages? Explained Simply",
         excerpt: "We break down the terms of service and technology to answer the ultimate question.",
         date: "Feb 7, 2026",
@@ -227,6 +243,8 @@ If you backup your chats to Google Drive or iCloud, and that backup *isn't* encr
     // --- Chat Applications & Technology ---
     {
         slug: "how-modern-chat-apps-built",
+        image: "https://pollinations.ai/p/coding-react-js-node-js-code-screen-developer-typing",
+        imageAlt: "Developer coding a modern chat application",
         title: "How Modern Chat Applications Are Built (Beginner Friendly Guide)",
         excerpt: "Curious about code? Learn about the stack: React, Node.js, WebSockets, and Databases.",
         date: "Feb 8, 2026",
@@ -261,6 +279,8 @@ It's easy to build a chat app for 2 people. It's hard to build one for 2 million
     },
     {
         slug: "web-vs-mobile-chat",
+        image: "https://pollinations.ai/p/mobile-phone-vs-laptop-computer-chat-secure-comparison",
+        imageAlt: "Comparison of mobile phone and laptop for chat",
         title: "Web Chat vs Mobile Chat Apps: Which Is More Secure?",
         excerpt: "Browser-based chatting vs. Native Apps. Is there a winner in security?",
         date: "Feb 9, 2026",
@@ -295,6 +315,8 @@ For maximum security, a **Native Mobile App** is generally safer due to OS-level
     },
     {
         slug: "real-time-messaging-explained",
+        image: "https://pollinations.ai/p/fast-speed-light-speed-data-transmission-lightning-digital-connections",
+        imageAlt: "Visual representation of high-speed real-time data transmission",
         title: "Real-Time Messaging Explained: How Messages Deliver Instantly",
         excerpt: "Polling vs. Long-Polling vs. WebSockets. The evolution of speed.",
         date: "Feb 10, 2026",
@@ -329,6 +351,8 @@ This is **Socket.IO** or standard **WebSockets**. The connection stays alive. Da
     },
     {
         slug: "handling-millions-of-messages",
+        image: "https://pollinations.ai/p/server-room-massive-data-center-glowing-lights-cables",
+        imageAlt: "Massive server data center handling millions of messages",
         title: "How Chat Apps Handle Millions of Messages Securely",
         excerpt: "Scaling systems to handle global traffic without crashing or leaking data.",
         date: "Feb 11, 2026",
@@ -359,6 +383,8 @@ Encrypting millions of messages burns CPU power. Specialized hardware (AES instr
     },
     {
         slug: "role-of-cloud-storage",
+        image: "https://pollinations.ai/p/cloud-storage-server-floating-in-sky-digital-data-lock",
+        imageAlt: "Cloud storage concept with servers in the sky",
         title: "Role of Cloud Storage in Chat Applications",
         excerpt: "Why your photos live in the cloud, and how we keep them safe.",
         date: "Feb 12, 2026",
@@ -387,6 +413,8 @@ We encrypt files *before* uploading or rely on strict Access Control Lists (ACLs
     },
     {
         slug: "managing-media-files",
+        image: "https://pollinations.ai/p/multimedia-image-video-audio-files-digital-compression-abstract",
+        imageAlt: "Abstract representation of digital media files",
         title: "How Chat Applications Manage Images, Videos, and Documents",
         excerpt: "Compression, thumbnails, and streaming. The lifecycle of a media attachment.",
         date: "Feb 13, 2026",
@@ -413,6 +441,8 @@ For long videos, we use **Streaming** (HLS). You don't verify the whole file to 
     // --- User Safety & Awareness ---
     {
         slug: "safety-tips-students",
+        image: "https://pollinations.ai/p/student-using-phone-safety-shield-school-happy",
+        imageAlt: "Student safely using a phone with a shield icon",
         title: "Online Chat Safety Tips for Students and Beginners",
         excerpt: "Essential advice for younger users navigating the digital world for the first time.",
         date: "Feb 14, 2026",
@@ -437,6 +467,8 @@ If someone is being mean, **Block and Report**. Do not engage. Trolls feed on re
     },
     {
         slug: "identify-fake-profiles",
+        image: "https://pollinations.ai/p/fake-profile-mask-imposter-social-media-danger",
+        imageAlt: "Mask representing a fake profile imposter",
         title: "How to Identify Fake Profiles on Chat Applications",
         excerpt: "Spotting the red flags: Generic photos, grammar mistakes, and urgent requests.",
         date: "Feb 15, 2026",
@@ -468,6 +500,8 @@ Fakes rarely agree to a live video chat.
     },
     {
         slug: "safe-communication-rules",
+        image: "https://pollinations.ai/p/polite-chat-etiquette-respect-digital-kindness",
+        imageAlt: "Concept of polite and respectful digital communication",
         title: "Safe Online Communication Rules Everyone Should Follow",
         excerpt: "A manifesto for a healthy digital life. Respect, boundaries, and verification.",
         date: "Feb 16, 2026",
@@ -493,6 +527,8 @@ Don't use your work email for personal chat apps. Keep your digital identities d
     },
     {
         slug: "protect-personal-data",
+        image: "https://pollinations.ai/p/personal-data-protection-id-card-shield-lock",
+        imageAlt: "ID card protected by a shield and lock",
         title: "How to Protect Your Personal Data While Chatting Online",
         excerpt: "Data minimization techniques. What to share, and what to keep secret.",
         date: "Feb 17, 2026",
@@ -518,6 +554,8 @@ Does a flashlight app need access to your Contacts? No. Does a Chat app need acc
     },
     {
         slug: "common-chat-scams",
+        image: "https://pollinations.ai/p/internet-scam-phishing-hook-warning-sign-danger",
+        imageAlt: "Warning sign for internet phishing scams",
         title: "Common Online Chat Scams and How to Avoid Them",
         excerpt: "From 'Romance Scams' to 'Crypto Investments'. Learn the patterns.",
         date: "Feb 18, 2026",
@@ -548,6 +586,8 @@ Months of grooming. "I love you, but I need money for a visa/plane ticket to per
     // --- Legal, Trust & Transparency ---
     {
         slug: "privacy-policy-importance",
+        image: "https://pollinations.ai/p/legal-document-privacy-policy-contract-signature-pen",
+        imageAlt: "Signing a legal privacy policy document",
         title: "Why Privacy Policy Is Important for Chat Applications",
         excerpt: "It's the boring document nobody reads, but it's your legal shield.",
         date: "Feb 19, 2026",
@@ -572,6 +612,8 @@ At Chatbook, our policy is simple: We collect the minimum needed to function, an
     },
     {
         slug: "data-protection-laws",
+        image: "https://pollinations.ai/p/law-justice-hammer-gavel-digital-data-regulations",
+        imageAlt: "Legal gavel resting on digital data regulations",
         title: "Data Protection Laws Every Chat App User Should Know",
         excerpt: "GDPR, CCPA, and IT Act. Your rights are protected by law.",
         date: "Feb 20, 2026",
@@ -596,6 +638,8 @@ India is strengthening its digital privacy laws. Companies must store sensitive 
     },
     {
         slug: "how-chat-apps-store-data",
+        image: "https://pollinations.ai/p/database-hard-drive-storage-server-racks-glowing-code",
+        imageAlt: "Hard drives and server racks storing data",
         title: "How Chat Apps Store User Data and What You Should Know",
         excerpt: "Data retention policies. Deleted doesn't always mean deleted.",
         date: "Feb 21, 2026",
@@ -619,6 +663,8 @@ Telecom laws often require apps to keep *metadata* (who spoke to whom) for 6-12 
     },
     {
         slug: "is-online-chat-safe",
+        image: "https://pollinations.ai/p/safe-online-chat-happy-people-connecting-digital-world",
+        imageAlt: "Happy people connecting safely in a digital world",
         title: "Is Online Chat Safe? A Complete Guide for New Users",
         excerpt: "A balanced summary of risks vs. benefits. How to navigate the digital world confidently.",
         date: "Feb 22, 2026",
@@ -642,6 +688,8 @@ Treat your digital house like your physical house. Lock the doors (Strong Passwo
     // --- Extra (Traffic + Monetization Boost) ---
     {
         slug: "best-secure-chat-apps",
+        image: "https://pollinations.ai/p/best-chat-apps-icons-comparison-gold-medal",
+        imageAlt: "Comparison of top chat app icons",
         title: "Best Secure Chat Applications for Privacy-Focused Users",
         excerpt: "A roundup of the top contenders: Signal, WhatsApp, Telegram, and Chatbook.",
         date: "Feb 23, 2026",
@@ -671,6 +719,8 @@ Treat your digital house like your physical house. Lock the doors (Strong Passwo
     },
     {
         slug: "future-of-secure-messaging",
+        image: "https://pollinations.ai/p/future-technology-sci-fi-futuristic-city-communication-hologram",
+        imageAlt: "Futuristic city with holographic communication",
         title: "Future of Secure Messaging Applications in India",
         excerpt: "Post-Quantum encryption, AI integration, and the payment revolution.",
         date: "Feb 24, 2026",
@@ -693,6 +743,8 @@ Your chat app will have a smart assistant. "Summarize this group chat for me." "
     },
     {
         slug: "encrypted-apps-changing-communication",
+        image: "https://pollinations.ai/p/global-communication-connecting-world-digital-lines-glowing-map",
+        imageAlt: "Glowing world map showing global communication lines",
         title: "How Encrypted Chat Apps Are Changing Online Communication",
         excerpt: "From military tech to teenage text. The democratization of secrecy.",
         date: "Feb 25, 2026",
@@ -714,6 +766,8 @@ It has also changed *how* we talk. Knowing the conversation is private encourage
     },
     {
         slug: "safe-file-sharing",
+        image: "https://pollinations.ai/p/safe-file-transfer-folder-lock-digital-secure-sharing",
+        imageAlt: "Secure digital folder with a lock for file sharing",
         title: "The Ultimate Guide to Safe File Sharing Online",
         excerpt: "Sending documents? Photos? Learn how to share files without compromising metadata or quality.",
         date: "Feb 26, 2026",
@@ -735,6 +789,8 @@ PDFs can contain hidden revision history. Always "Flatten" PDFs or print-to-pdf 
     },
     {
         slug: "avoiding-social-engineering",
+        image: "https://pollinations.ai/p/social-engineering-phishing-scam-warning-brain-manipulation",
+        imageAlt: "Concept art of social engineering and psychological manipulation",
         title: "Social Engineering: The Art of Human Hacking",
         excerpt: "Hackers don't hack computers; they hack people. Learn the psychological triggers they use.",
         date: "Feb 27, 2026",
@@ -757,6 +813,8 @@ Social engineering relies on:
     },
     {
         slug: "vpn-and-chat-apps",
+        image: "https://pollinations.ai/p/vpn-tunnel-digital-secure-connection-shield-world-map",
+        imageAlt: "VPN tunnel securing a connection across the world map",
         title: "Do You Need a VPN for Chat Apps?",
         excerpt: "Encryption vs. Anonymity. What a VPN hides and what it doesn't.",
         date: "Feb 28, 2026",
@@ -780,6 +838,8 @@ Social engineering relies on:
     },
     {
         slug: "history-of-cryptography",
+        image: "https://pollinations.ai/p/ancient-cypher-enigma-machine-roman-text-secret-code",
+        imageAlt: "Historical collage of cryptography with Enigma machine and Roman text",
         title: "A Brief History of Cryptography: From Caesar to Quantum",
         excerpt: "How secret writing evolved from Roman times to the digital age.",
         date: "Mar 1, 2026",
@@ -802,6 +862,8 @@ Diffie-Hellman changed everything. You could share a secret in public without me
     },
     {
         slug: "digital-footprint-management",
+        image: "https://pollinations.ai/p/digital-footprint-cyber-identity-trace-walking-sand",
+        imageAlt: "Footprints in digital sand representing a digital footprint",
         title: "Managing Your Digital Footprint",
         excerpt: "The internet never forgets. How to clean up your past and protect your future.",
         date: "Mar 2, 2026",
@@ -823,6 +885,8 @@ Everything you post is archived.
     },
     {
         slug: "parental-controls-guide",
+        image: "https://pollinations.ai/p/parent-child-safely-using-tablet-digital-family-protection",
+        imageAlt: "Parent and child safely using a tablet together",
         title: "A Parent's Guide to Safe Chatting for Kids",
         excerpt: "Balancing privacy and protection. Tools and conversations for the modern parent.",
         date: "Mar 3, 2026",
@@ -845,6 +909,8 @@ For young kids, keep devices in common areas (Living Room), not bedrooms.
     },
     {
         slug: "business-chat-etiquette",
+        image: "https://pollinations.ai/p/business-professional-shaking-hands-digital-office-chat",
+        imageAlt: "Professionals shaking hands in a digital office setting",
         title: "Professional Chat Etiquette for Business",
         excerpt: "Emojis in work chats? Response times? The do's and don'ts of professional messaging.",
         date: "Mar 4, 2026",
@@ -868,6 +934,8 @@ Use sparingly. A "Thumbs Up" is fine for acknowledgement. A "Heart" might be unp
     },
     {
         slug: "open-source-software-benefits",
+        image: "https://pollinations.ai/p/open-source-code-github-logo-transparent-digital-community",
+        imageAlt: "Open source code concept with transparent digital elements",
         title: "Why Open Source Software is Safer",
         excerpt: "Transparency creates trust. Why hidden code is a security risk.",
         date: "Mar 5, 2026",
@@ -887,6 +955,8 @@ If code is public, thousands of security researchers can look for bugs. Bad code
     },
     {
         slug: "future-of-passwords",
+        image: "https://pollinations.ai/p/biometric-security-fingerprint-scan-eye-scan-digital-lock",
+        imageAlt: "Biometric security scans replacing passwords",
         title: "Passkeys and the Death of the Password",
         excerpt: "Why typing 'Password123' is ending, and how biometrics are taking over.",
         date: "Mar 6, 2026",
@@ -911,6 +981,8 @@ Chatbook supports secure authentication methods to prepare for this future.
     },
     {
         slug: "digital-detox-strategies",
+        image: "https://pollinations.ai/p/digital-detox-nature-peace-phone-off-wellness",
+        imageAlt: "Peaceful nature scene representing digital detox",
         title: "Strategies for a Healthy Digital Detox",
         excerpt: "Feeling overwhelmed? How to unplug without losing your social life.",
         date: "Mar 7, 2026",
