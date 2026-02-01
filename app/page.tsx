@@ -39,7 +39,7 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
               <Link
-                href="/web"
+                href="/chat"
                 className="px-8 py-4 bg-[#00a884] hover:bg-[#008f6f] text-[#111b21] rounded-full font-bold text-lg transition-transform hover:scale-105 shadow-xl shadow-[#00a884]/20 w-full sm:w-auto text-center"
               >
                 Open Chatbook Web

@@ -50,7 +50,7 @@ function WebContent() {
     }, [user, loading, router]);
 
     const handleSelectUser = (u: UserData) => {
-        router.push(`/web?chat=${u.uid}`, { scroll: false });
+        router.push(`/chat?chat=${u.uid}`, { scroll: false });
         setSelectedUser(u);
     };
 

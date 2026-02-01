@@ -29,7 +29,7 @@ export default function Footer() {
                 <div>
                     <h3 className="text-white font-semibold mb-6 uppercase tracking-wider text-xs">Product</h3>
                     <ul className="space-y-4 text-sm">
-                        <li><Link href="/web" className="hover:text-[#00a884] transition-colors">Chat Web</Link></li>
+                        <li><Link href="/chat" className="hover:text-[#00a884] transition-colors">Chat Web</Link></li>
                         <li><Link href="/features" className="hover:text-[#00a884] transition-colors">Features</Link></li>
                         <li><Link href="/security" className="hover:text-[#00a884] transition-colors">Security</Link></li>
                         <li><Link href="/download" className="hover:text-[#00a884] transition-colors">Download</Link></li>

@@ -35,7 +35,7 @@ export default function Navbar() {
                         </Link>
 
                         <Link
-                            href={user ? "/web" : "/login"}
+                            href={user ? "/chat" : "/login"}
                             className="px-5 py-2.5 bg-[#00a884] hover:bg-[#008f6f] text-[#111b21] rounded-full font-bold text-sm transition-all shadow-lg shadow-[#00a884]/20"
                         >
                             {user ? "Open Web" : "Get Started"}
@@ -88,7 +88,7 @@ export default function Navbar() {
                         </Link>
                         <div className="pt-4">
                             <Link
-                                href={user ? "/web" : "/login"}
+                                href={user ? "/chat" : "/login"}
                                 onClick={() => setIsOpen(false)}
                                 className="block w-full text-center px-5 py-3 bg-[#00a884] text-[#111b21] rounded-full font-bold"
                             >
