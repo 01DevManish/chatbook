@@ -6,7 +6,8 @@ import { rtdb } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useCall } from "@/context/CallContext";
 import MessageBubble from "./MessageBubble";
-import { Image as ImageIcon, Send, ArrowLeft, X, Reply, Smile, MoreVertical, Video, Phone } from "lucide-react";
+import { Image as ImageIcon, Send, ArrowLeft, X, Reply, Smile, MoreVertical, Video, Phone, Mic } from "lucide-react";
+import VoiceRecorder from "./VoiceRecorder";
 import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
 import PinModal from "@/components/UI/PinModal";
 import MediaGallery from "./MediaGallery";
@@ -38,6 +39,8 @@ export interface Message {
     receiverId: string;
     text: string;
     image?: string | null;
+    audio?: string;
+    type?: 'text' | 'image' | 'audio';
     timestamp: number;
     read: boolean;
     edited?: boolean;
@@ -72,6 +75,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
     const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
     const [messageLimit, setMessageLimit] = useState(50);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
     const scrollPosRef = useRef<number>(0);
     const scrollHeightRef = useRef<number>(0);
 
@@ -396,6 +400,50 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
         }
     };
 
+    const handleVoiceSend = async (audioBlob: Blob) => {
+        setIsRecording(false);
+        try {
+            const formData = new FormData();
+            formData.append('file', audioBlob);
+
+            const upRes = await fetch('/api/upload/voice', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!upRes.ok) throw new Error('Upload failed');
+            const { url } = await upRes.json();
+
+            const newMessageRef = push(ref(rtdb, `chats/${chatId}/messages`));
+            const messageData: Message = {
+                id: newMessageRef.key!,
+                audio: url,
+                senderId: user!.uid,
+                receiverId: selectedUser.uid,
+                timestamp: Date.now(),
+                read: false,
+                type: 'audio',
+                text: 'Voice Message' // Fallback text
+            };
+            await set(newMessageRef, messageData);
+
+            // Send notification
+            if (!isOtherTyping) {
+                await sendPushNotification({
+                    receiverId: selectedUser.uid,
+                    senderName: user?.displayName || 'User',
+                    messageText: `🎤 Voice Message`,
+                    chatId: chatId!,
+                    senderId: user!.uid
+                });
+            }
+
+        } catch (err) {
+            console.error(err);
+            alert("Failed to send voice message");
+        }
+    };
+
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -556,55 +604,71 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
         alert("Forward feature coming soon!");
     };
 
+    // Force body scroll lock - Mobile only
+    useEffect(() => {
+        if (window.innerWidth < 640) {
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.width = '100%';
+            document.body.style.height = '100%';
+        }
+        return () => {
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
+            document.body.style.height = '';
+        };
+    }, []);
+
     return (
-        <div className="fixed inset-0 sm:relative sm:inset-auto flex flex-col bg-[#0b141a] h-full w-full">
+        <div className="fixed inset-0 z-40 sm:z-auto sm:static sm:inset-auto flex flex-col bg-[var(--whatsapp-bg)] h-[100dvh] sm:h-full w-full overflow-hidden supports-[height:100dvh]:h-[100dvh]">
             {/* Header - Fixed at Top - WhatsApp Exact Style */}
-            <header className="flex-shrink-0 flex items-center gap-2 bg-[#202c33] px-2 py-1.5 sm:px-4 sm:py-2.5 z-50 border-b border-[#2a3942]/30" style={{ paddingTop: 'max(6px, env(safe-area-inset-top))' }}>
+            <header className="flex-shrink-0 flex items-center gap-2 bg-[var(--whatsapp-header)] px-2 py-1.5 sm:px-4 sm:py-2.5 z-50 border-b border-[var(--whatsapp-border)]" style={{ paddingTop: 'max(6px, env(safe-area-inset-top))' }}>
                 <button
                     onClick={onBack}
-                    className="sm:hidden text-[#e9edef] p-1.5 active:bg-[#374248] rounded-full transition-colors flex-shrink-0"
+                    className="sm:hidden text-[var(--whatsapp-text-primary)] p-1.5 active:bg-[var(--whatsapp-panel)] rounded-full transition-colors flex-shrink-0"
                 >
                     <ArrowLeft size={22} />
                 </button>
                 <div
-                    className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-[#6b7c85] overflow-hidden flex-shrink-0 cursor-pointer active:opacity-80 transition-opacity"
+                    className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-gray-300 overflow-hidden flex-shrink-0 cursor-pointer active:opacity-80 transition-opacity"
                     onClick={() => setShowProfileModal(true)}
                 >
                     {selectedUser.photoURL ? (
                         <img src={selectedUser.photoURL} alt={selectedUser.displayName} className="h-full w-full object-cover" />
                     ) : (
-                        <span className="font-medium text-[#cfd8dc] text-base">{selectedUser.displayName?.[0]?.toUpperCase()}</span>
+                        <span className="font-medium text-gray-600 text-base">{selectedUser.displayName?.[0]?.toUpperCase()}</span>
                     )}
                 </div>
                 <div
                     className="flex-1 min-w-0 cursor-pointer"
                     onClick={() => setShowProfileModal(true)}
                 >
-                    <h3 className="font-medium text-[#e9edef] truncate">{selectedUser.displayName}</h3>
+                    <h3 className="font-medium text-[var(--whatsapp-text-primary)] truncate">{selectedUser.displayName}</h3>
                     {isOtherTyping ? (
-                        <p className="text-xs text-[#25d366] font-medium">
+                        <p className="text-xs text-[var(--whatsapp-green)] font-medium">
                             typing...
                         </p>
                     ) : selectedUser.lastSeen ? (
-                        <p className="text-xs text-[#8696a0]">
+                        <p className="text-xs text-[var(--whatsapp-text-secondary)]">
                             last seen {new Date(selectedUser.lastSeen).toLocaleTimeString()}
                         </p>
                     ) : (
-                        <p className="text-xs text-[#8696a0]">online</p>
+                        <p className="text-xs text-[var(--whatsapp-text-secondary)]">online</p>
                     )}
                 </div>
                 {/* Call Buttons - Compact on mobile */}
                 <div className="flex items-center gap-0.5 sm:gap-2 flex-shrink-0">
                     <button
                         onClick={() => startCall(selectedUser, 'video')}
-                        className="p-1.5 sm:p-2 text-[#aebac1] active:bg-[#374248] rounded-full transition-colors"
+                        className="p-1.5 sm:p-2 text-[var(--whatsapp-text-secondary)] active:bg-[rgba(0,0,0,0.1)] rounded-full transition-colors"
                         title="Video Call"
                     >
                         <Video size={20} className="sm:w-6 sm:h-6" />
                     </button>
                     <button
                         onClick={() => startCall(selectedUser, 'audio')}
-                        className="p-1.5 sm:p-2 text-[#aebac1] active:bg-[#374248] rounded-full transition-colors"
+                        className="p-1.5 sm:p-2 text-[var(--whatsapp-text-secondary)] active:bg-[rgba(0,0,0,0.1)] rounded-full transition-colors"
                         title="Voice Call"
                     >
                         <Phone size={18} className="sm:w-[22px] sm:h-[22px]" />
@@ -614,22 +678,22 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 <div className="relative flex-shrink-0" ref={menuRef}>
                     <button
                         onClick={() => setShowMenu(!showMenu)}
-                        className="p-1.5 sm:p-2 text-[#aebac1] active:bg-[#374248] rounded-full transition-colors"
+                        className="p-1.5 sm:p-2 text-[var(--whatsapp-text-secondary)] active:bg-[rgba(0,0,0,0.1)] rounded-full transition-colors"
                     >
                         <MoreVertical size={20} className="sm:w-6 sm:h-6" />
                     </button>
                     {showMenu && (
-                        <div className="absolute right-0 top-12 w-48 bg-[#233138] rounded-md shadow-xl py-2 z-50 animate-in fade-in zoom-in duration-100 origin-top-right">
+                        <div className="absolute right-0 top-12 w-48 bg-[var(--whatsapp-panel)] rounded-md shadow-xl py-2 z-50 animate-in fade-in zoom-in duration-100 origin-top-right ring-1 ring-black/5">
                             <button
                                 onClick={handleClearChat}
-                                className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm"
+                                className="w-full text-left px-4 py-3 text-[var(--whatsapp-text-primary)] hover:bg-[rgba(0,0,0,0.05)] transition-colors text-sm"
                             >
                                 Clear Chat
                             </button>
                             {chatSettings?.lastClearedTimestamp && (
                                 <button
                                     onClick={handleRetrieveChat}
-                                    className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm"
+                                    className="w-full text-left px-4 py-3 text-[var(--whatsapp-text-primary)] hover:bg-[rgba(0,0,0,0.05)] transition-colors text-sm"
                                 >
                                     Retrieve Messages
                                 </button>
@@ -639,7 +703,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                                     setShowMenu(false);
                                     setShowMediaGallery(true);
                                 }}
-                                className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm border-t border-[#2a3942]"
+                                className="w-full text-left px-4 py-3 text-[var(--whatsapp-text-primary)] hover:bg-[rgba(0,0,0,0.05)] transition-colors text-sm border-t border-[var(--whatsapp-border)]"
                             >
                                 Media, Links, and Docs
                             </button>
@@ -648,7 +712,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                                     setShowMenu(false);
                                     setShowWallpaperModal(true);
                                 }}
-                                className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm"
+                                className="w-full text-left px-4 py-3 text-[var(--whatsapp-text-primary)] hover:bg-[rgba(0,0,0,0.05)] transition-colors text-sm"
                             >
                                 Change Wallpaper
                             </button>
@@ -661,12 +725,12 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
             <div
                 id="messages-container"
                 onScroll={handleScroll}
-                className="flex-1 overflow-y-auto overscroll-contain px-3 py-2 sm:px-6 lg:px-12"
+                className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-2 sm:px-6 lg:px-12"
                 style={{
-                    backgroundColor: '#0b141a',
+                    backgroundColor: 'var(--whatsapp-bg)',
                     backgroundImage: wallpaper
                         ? `url("${wallpaper}")`
-                        : `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23182229' fill-opacity='0.6'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                        : `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23667781' fill-opacity='0.12'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
                     backgroundSize: wallpaper ? 'cover' : 'auto',
                     backgroundRepeat: wallpaper ? 'no-repeat' : 'repeat',
                     backgroundPosition: 'center',
@@ -676,7 +740,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                     <div className="space-y-1">
                         {visibleMessages.length === 0 && chatSettings?.lastClearedTimestamp && (
                             <div className="text-center py-6">
-                                <span className="bg-[#1f2c33] text-[#8696a0] text-xs px-3 py-1.5 rounded-full border border-[#2a3942]">
+                                <span className="bg-[rgba(0,0,0,0.2)] text-[var(--whatsapp-text-secondary)] text-xs px-3 py-1.5 rounded-full border border-[var(--whatsapp-border)]">
                                     Messages cleared. Use menu to retrieve.
                                 </span>
                             </div>
@@ -708,7 +772,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                                 <div key={msg.id}>
                                     {showDateSeparator && (
                                         <div className="flex justify-center py-2 my-2">
-                                            <span className="bg-[#182229] text-[#8696a0] text-[11px] px-3 py-1 rounded-lg shadow-sm uppercase tracking-wide">
+                                            <span className="bg-[var(--whatsapp-panel)] dark:bg-[#182229] text-[var(--whatsapp-text-secondary)] text-[11px] px-3 py-1 rounded-lg shadow-sm uppercase tracking-wide">
                                                 {getDateLabel(msgDate)}
                                             </span>
                                         </div>
@@ -735,17 +799,17 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
             {/* Reply Preview - WhatsApp Style */}
             {
                 replyingTo && (
-                    <div className="bg-[#1f2c33] border-l-4 border-[#25d366] px-4 py-2 flex items-center justify-between">
+                    <div className="bg-[var(--whatsapp-header)] border-l-4 border-[var(--whatsapp-green)] px-4 py-2 flex items-center justify-between">
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 text-sm text-[#25d366] font-medium">
+                            <div className="flex items-center gap-2 text-sm text-[var(--whatsapp-green)] font-medium">
                                 <Reply size={14} />
                                 Replying to {getReplyPreviewName(replyingTo!.senderId)}
                             </div>
-                            <p className="text-sm text-[#8696a0] truncate">
+                            <p className="text-sm text-[var(--whatsapp-text-secondary)] truncate">
                                 {replyingTo.text || (replyingTo.image ? "📷 Image" : "")}
                             </p>
                         </div>
-                        <button onClick={cancelReply} className="text-[#8696a0] hover:text-[#e9edef] p-1">
+                        <button onClick={cancelReply} className="text-[var(--whatsapp-text-secondary)] hover:text-[var(--whatsapp-text-primary)] p-1">
                             <X size={20} />
                         </button>
                     </div>
@@ -755,16 +819,16 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
             {/* Edit Mode Indicator */}
             {
                 editingMessage && (
-                    <div className="bg-[#1f2c33] border-l-4 border-[#53bdeb] px-4 py-2 flex items-center justify-between">
+                    <div className="bg-[var(--whatsapp-header)] border-l-4 border-[var(--whatsapp-blue-tick)] px-4 py-2 flex items-center justify-between">
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 text-sm text-[#53bdeb] font-medium">
+                            <div className="flex items-center gap-2 text-sm text-[var(--whatsapp-blue-tick)] font-medium">
                                 ✏️ Editing message
                             </div>
-                            <p className="text-sm text-[#8696a0] truncate">
+                            <p className="text-sm text-[var(--whatsapp-text-secondary)] truncate">
                                 {editingMessage.text}
                             </p>
                         </div>
-                        <button onClick={handleCancelEdit} className="text-[#8696a0] hover:text-[#e9edef] p-1">
+                        <button onClick={handleCancelEdit} className="text-[var(--whatsapp-text-secondary)] hover:text-[var(--whatsapp-text-primary)] p-1">
                             <X size={20} />
                         </button>
                     </div>
@@ -788,11 +852,11 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
             }
 
             {/* Input - WhatsApp Style - Fixed Bottom */}
-            <div className="flex-shrink-0 bg-[#202c33] px-1.5 py-1 sm:px-3 sm:py-2" style={{ paddingBottom: 'max(4px, env(safe-area-inset-bottom))' }}>
+            <div className="flex-shrink-0 bg-[var(--whatsapp-header)] px-1.5 py-1 sm:px-3 sm:py-2" style={{ paddingBottom: 'max(4px, env(safe-area-inset-bottom))' }}>
                 {/* Image Preview */}
                 {image && (
                     <div className="mb-2 relative inline-block ml-2">
-                        <img src={image || undefined} alt="Preview" className="h-14 rounded-lg border border-[#2a3942]" />
+                        <img src={image || undefined} alt="Preview" className="h-14 rounded-lg border border-[var(--whatsapp-border)]" />
                         <button
                             onClick={() => { setImage(null); setSelectedFile(null); }}
                             className="absolute -top-1 -right-1 bg-[#ea4335] text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold shadow-lg"
@@ -811,47 +875,66 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                         onChange={handleImageSelect}
                     />
 
-                    {/* Emoji Button - Outside Input on Mobile, Inside on Desktop */}
-                    <button
-                        type="button"
-                        onClick={toggleEmojiPicker}
-                        className={`p-2 rounded-full transition-colors flex-shrink-0 hover:bg-[#374248] ${showEmojiPicker ? 'text-[#00a884]' : 'text-[#8696a0]'}`}
-                    >
-                        <Smile size={24} />
-                    </button>
+                    {/* Main Input Container - WhatsApp Style (Hidden when recording) */}
+                    {!isRecording && (
+                        <>
+                            {/* Emoji Button - Outside Input on Mobile, Inside on Desktop */}
+                            <button
+                                type="button"
+                                onClick={toggleEmojiPicker}
+                                className={`p-2 rounded-full transition-colors flex-shrink-0 hover:bg-[rgba(0,0,0,0.05)] ${showEmojiPicker ? 'text-[var(--whatsapp-green)]' : 'text-[var(--whatsapp-text-secondary)]'}`}
+                            >
+                                <Smile size={24} />
+                            </button>
 
-                    {/* Attachment Button */}
-                    <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="p-2 text-[#8696a0] rounded-full transition-colors flex-shrink-0 hover:bg-[#374248] -ml-1 mr-1"
-                    >
-                        <ImageIcon size={24} />
-                    </button>
+                            {/* Attachment Button */}
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="p-2 text-[var(--whatsapp-text-secondary)] rounded-full transition-colors flex-shrink-0 hover:bg-[rgba(0,0,0,0.05)] -ml-1 mr-1"
+                            >
+                                <ImageIcon size={24} />
+                            </button>
 
-                    {/* Main Input Container - WhatsApp Style */}
-                    <div className="flex-1 flex items-center bg-[#2a3942] rounded-xl px-2 py-1.5 sm:py-2">
-                        {/* Text Input */}
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={newMessage}
-                            onChange={handleInputChange}
-                            placeholder={editingMessage ? "Edit message..." : replyingTo ? "Reply..." : "Type a message"}
-                            className="flex-1 min-w-0 bg-transparent text-[#e9edef] placeholder-[#8696a0] text-[15px] focus:outline-none px-2"
+                            <div className="flex-1 flex items-center bg-[var(--whatsapp-input-bg)] rounded-2xl px-2 py-1.5 sm:py-2 border border-transparent focus-within:border-[rgba(0,0,0,0.1)]">
+                                {/* Text Input */}
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    value={newMessage}
+                                    onChange={handleInputChange}
+                                    placeholder={editingMessage ? "Edit message..." : replyingTo ? "Reply..." : "Type a message"}
+                                    className="flex-1 min-w-0 bg-transparent text-[var(--whatsapp-text-primary)] placeholder-[var(--whatsapp-text-secondary)] text-[15px] focus:outline-none px-2"
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {/* Voice Recorder Component replaces input when active */}
+                    {isRecording && (
+                        <VoiceRecorder
+                            onSend={handleVoiceSend}
+                            onCancel={() => setIsRecording(false)}
                         />
-                    </div>
+                    )}
 
                     {/* Send / Mic Button */}
-                    <button
-                        type="submit"
-                        disabled={sending || (!newMessage.trim() && !image)}
-                        className={`p-2 rounded-full flex-shrink-0 flex items-center justify-center transition-all 
-                            ${(newMessage.trim() || image) ? 'text-[#00a884]' : 'text-[#8696a0]'}
-                            hover:bg-[#374248] active:scale-95`}
-                    >
-                        {(newMessage.trim() || image) ? <Send size={24} /> : <div className="p-1"><span title="Voice coming soon">🎤</span></div>}
-                    </button>
+                    {!isRecording && (
+                        <button
+                            type={newMessage.trim() || image ? "submit" : "button"}
+                            onClick={(e) => {
+                                if (!newMessage.trim() && !image) {
+                                    e.preventDefault();
+                                    setIsRecording(true);
+                                }
+                            }}
+                            className={`p-2 rounded-full flex-shrink-0 flex items-center justify-center transition-all 
+                                ${(newMessage.trim() || image) ? 'text-[var(--whatsapp-green)]' : 'text-[var(--whatsapp-text-secondary)]'}
+                                hover:bg-[rgba(0,0,0,0.05)] active:scale-95`}
+                        >
+                            {(newMessage.trim() || image) ? <Send size={24} /> : <Mic size={24} />}
+                        </button>
+                    )}
                 </form>
             </div>
             {/* Pin Modal */}
@@ -885,3 +968,4 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
         </div>
     );
 }
+

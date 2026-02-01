@@ -5,7 +5,7 @@ import { ref, onValue, update, get, query, limitToLast, orderByChild } from "fir
 import { rtdb, auth, storage, db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
-import { LogOut, User as UserIcon, RefreshCw, Search, MoreVertical, Camera, UserPlus, Users as GroupIcon } from "lucide-react";
+import { LogOut, User as UserIcon, RefreshCw, Search, MoreVertical, Camera, UserPlus, Users as GroupIcon, Plus, Users, Settings, MessageSquare, Phone, Book } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { updateProfile } from "firebase/auth";
@@ -307,6 +307,12 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
                                 <button onClick={() => { setShowMenu(false); setIsCreateGroupOpen(true); }} className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm">New Group</button>
                                 <button onClick={() => { setShowMenu(false); setIsSettingsOpen(true); }} className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm">Settings</button>
                                 <button onClick={() => { setShowMenu(false); testNotification(); }} className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm">Test Notification</button>
+                                <button
+                                    onClick={() => { setShowMenu(false); router.push("/docs"); }}
+                                    className="w-full text-left px-4 py-3 text-[#e9edef] hover:bg-[#182229] transition-colors text-sm flex items-center gap-3"
+                                >
+                                    <Book size={18} /> Documentation
+                                </button>
                             </div>
                         )}
                     </div>

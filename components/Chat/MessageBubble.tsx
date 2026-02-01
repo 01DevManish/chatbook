@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { cn, formatDate } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
-import { Reply, Copy, Forward, Trash2, Pencil, Smile, MoreHorizontal } from "lucide-react";
+import { Reply, Copy, Forward, Trash2, Pencil, Smile, MoreHorizontal, Play, Pause } from "lucide-react";
 import type { Message } from "./ChatWindow";
 import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from "framer-motion";
 
@@ -21,6 +21,74 @@ interface MessageBubbleProps {
 }
 
 const QUICK_REACTIONS = ["❤️", "😂", "😮", "😢", "🙏", "👍"];
+
+function AudioPlayer({ src, isMe }: { src: string, isMe: boolean }) {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        const handleTimeUpdate = () => {
+            if (audio.duration) {
+                setProgress((audio.currentTime / audio.duration) * 100);
+            }
+        };
+
+        const handleEnded = () => {
+            setIsPlaying(false);
+            setProgress(100);
+        };
+
+        audio.addEventListener("timeupdate", handleTimeUpdate);
+        audio.addEventListener("ended", handleEnded);
+        return () => {
+            audio.removeEventListener("timeupdate", handleTimeUpdate);
+            audio.removeEventListener("ended", handleEnded);
+        };
+    }, []);
+
+    const togglePlay = () => {
+        if (!audioRef.current) return;
+        if (isPlaying) {
+            audioRef.current.pause();
+        } else {
+            audioRef.current.play();
+        }
+        setIsPlaying(!isPlaying);
+    };
+
+    return (
+        <div className="flex items-center gap-3 w-full pr-2">
+            <audio ref={audioRef} src={src} className="hidden" />
+            <button
+                onClick={togglePlay}
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-[rgba(100,100,100,0.1)] text-[var(--whatsapp-text-secondary)] hover:bg-[rgba(100,100,100,0.2)]"
+            >
+                {isPlaying ? <Pause size={20} className="fill-current" /> : <Play size={20} className="fill-current ml-0.5" />}
+            </button>
+            <div className="flex-1">
+                <div className="h-1 bg-[var(--whatsapp-text-secondary)] bg-opacity-30 rounded-full overflow-hidden">
+                    <div
+                        className="h-full bg-[var(--whatsapp-text-secondary)] transition-all duration-100"
+                        style={{ width: `${progress}%` }}
+                    />
+                </div>
+            </div>
+            {/* Avatar Headset Icon (Visual only for now) */}
+            <div className="relative">
+                <div className="w-10 h-10 rounded-full bg-[var(--whatsapp-text-secondary)] bg-opacity-10 flex items-center justify-center">
+                    <span className="text-xl">🎤</span>
+                </div>
+                <div className="absolute -bottom-1 -right-1">
+                    {/* Microphone small icon */}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function MessageBubble({
     message,
@@ -102,9 +170,9 @@ export default function MessageBubble({
             {/* Swipe Reply Indicator */}
             <motion.div
                 style={{ opacity, scale, x: -30 }}
-                className="absolute left-0 top-1/2 -translate-y-1/2 text-[#8696a0] z-0"
+                className="absolute left-0 top-1/2 -translate-y-1/2 text-[var(--whatsapp-text-secondary)] z-0"
             >
-                <div className="bg-[#202c33] p-2 rounded-full border border-[#2a3942]">
+                <div className="bg-[var(--whatsapp-header)] p-2 rounded-full border border-[var(--whatsapp-border)]">
                     <Reply size={20} />
                 </div>
             </motion.div>
@@ -124,10 +192,10 @@ export default function MessageBubble({
                 {isMe && (
                     <button
                         onClick={() => onReply(message)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity self-center mr-2 p-1.5 rounded-full hover:bg-[#2a3942]"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity self-center mr-2 p-1.5 rounded-full hover:bg-[rgba(0,0,0,0.05)]"
                         title="Reply"
                     >
-                        <Reply size={16} className="text-[#8696a0]" />
+                        <Reply size={16} className="text-[var(--whatsapp-text-secondary)]" />
                     </button>
                 )}
 
@@ -138,23 +206,23 @@ export default function MessageBubble({
                     onTouchEnd={handleTouchEnd}
                     onTouchCancel={handleTouchEnd}
                     className={cn(
-                        "max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] rounded-lg pl-2 pr-2 py-1 shadow-sm relative transition-all hover:shadow-md select-none",
+                        "max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] w-fit rounded-xl px-2.5 py-1.5 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] relative transition-all select-none",
                         isMe
-                            ? "bg-[#005c4b] text-[#e9edef] rounded-tr-none"
-                            : "bg-[#202c33] text-[#e9edef] rounded-tl-none"
+                            ? "bg-[var(--whatsapp-message-out)] text-[var(--whatsapp-text-primary)] rounded-tr-none"
+                            : "bg-[var(--whatsapp-message-in)] text-[var(--whatsapp-text-primary)] rounded-tl-none"
                     )}
                 >
                     {/* Reactions Display */}
                     {hasReactions && (
                         <div className={cn(
-                            "absolute -bottom-4 flex gap-0.5 bg-[#1f2c33] rounded-full px-2 py-0.5 border border-[#2a3942] shadow-lg z-20",
+                            "absolute -bottom-4 flex gap-0.5 bg-[var(--whatsapp-panel)] rounded-full px-2 py-0.5 border border-[var(--whatsapp-border)] shadow-lg z-20",
                             isMe ? "right-2" : "left-2"
                         )}>
                             {Object.entries(message.reactions!).slice(0, 3).map(([emoji, users]) => (
                                 <span key={emoji} className="text-sm">{emoji}</span>
                             ))}
                             {Object.keys(message.reactions!).length > 3 && (
-                                <span className="text-xs text-[#8696a0] ml-0.5">+{Object.keys(message.reactions!).length - 3}</span>
+                                <span className="text-xs text-[var(--whatsapp-text-secondary)] ml-0.5">+{Object.keys(message.reactions!).length - 3}</span>
                             )}
                         </div>
                     )}
@@ -168,24 +236,24 @@ export default function MessageBubble({
                                 exit={{ opacity: 0, scale: 0.8, y: -10 }}
                                 transition={{ duration: 0.15 }}
                                 className={cn(
-                                    "absolute z-50 bg-[#233138] rounded-xl shadow-2xl border border-[#2a3942] overflow-hidden",
+                                    "absolute z-50 bg-[var(--whatsapp-panel)] rounded-xl shadow-2xl border border-[var(--whatsapp-border)] overflow-hidden min-w-[180px]",
                                     isMe ? "right-0 bottom-full mb-2" : "left-0 bottom-full mb-2"
                                 )}
                             >
                                 {/* Quick Reactions */}
-                                <div className="flex items-center gap-1 px-3 py-2 border-b border-[#2a3942]">
+                                <div className="flex items-center gap-1 px-3 py-2 border-b border-[var(--whatsapp-border)] bg-[var(--whatsapp-header)]">
                                     {QUICK_REACTIONS.map((emoji) => (
                                         <button
                                             key={emoji}
                                             onClick={() => handleReaction(emoji)}
-                                            className="text-xl hover:scale-125 transition-transform p-1 hover:bg-[#374248] rounded-full"
+                                            className="text-xl hover:scale-125 transition-transform p-1 hover:bg-[rgba(0,0,0,0.05)] rounded-full"
                                         >
                                             {emoji}
                                         </button>
                                     ))}
                                     <button
                                         onClick={() => setShowReactions(!showReactions)}
-                                        className="p-1.5 hover:bg-[#374248] rounded-full text-[#8696a0]"
+                                        className="p-1.5 hover:bg-[rgba(0,0,0,0.05)] rounded-full text-[var(--whatsapp-text-secondary)]"
                                     >
                                         <MoreHorizontal size={18} />
                                     </button>
@@ -195,36 +263,36 @@ export default function MessageBubble({
                                 <div className="py-1">
                                     <button
                                         onClick={() => { onReply(message); setShowMenu(false); }}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-[#e9edef] hover:bg-[#374248] transition-colors text-sm"
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-[var(--whatsapp-text-primary)] hover:bg-[rgba(0,0,0,0.05)] transition-colors text-sm"
                                     >
-                                        <Reply size={18} className="text-[#8696a0]" />
+                                        <Reply size={18} className="text-[var(--whatsapp-text-secondary)]" />
                                         Reply
                                     </button>
 
                                     {message.text && (
                                         <button
                                             onClick={handleCopy}
-                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-[#e9edef] hover:bg-[#374248] transition-colors text-sm"
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-[var(--whatsapp-text-primary)] hover:bg-[rgba(0,0,0,0.05)] transition-colors text-sm"
                                         >
-                                            <Copy size={18} className="text-[#8696a0]" />
+                                            <Copy size={18} className="text-[var(--whatsapp-text-secondary)]" />
                                             Copy
                                         </button>
                                     )}
 
                                     <button
                                         onClick={() => { onForward?.(message); setShowMenu(false); }}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-[#e9edef] hover:bg-[#374248] transition-colors text-sm"
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-[var(--whatsapp-text-primary)] hover:bg-[rgba(0,0,0,0.05)] transition-colors text-sm"
                                     >
-                                        <Forward size={18} className="text-[#8696a0]" />
+                                        <Forward size={18} className="text-[var(--whatsapp-text-secondary)]" />
                                         Forward
                                     </button>
 
                                     {isMe && message.text && (
                                         <button
                                             onClick={() => { onEdit?.(message); setShowMenu(false); }}
-                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-[#e9edef] hover:bg-[#374248] transition-colors text-sm"
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-[var(--whatsapp-text-primary)] hover:bg-[rgba(0,0,0,0.05)] transition-colors text-sm"
                                         >
-                                            <Pencil size={18} className="text-[#8696a0]" />
+                                            <Pencil size={18} className="text-[var(--whatsapp-text-secondary)]" />
                                             Edit
                                         </button>
                                     )}
@@ -232,7 +300,7 @@ export default function MessageBubble({
                                     {isMe && (
                                         <button
                                             onClick={() => { onDelete?.(message.id); setShowMenu(false); }}
-                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-[#ea4335] hover:bg-[#374248] transition-colors text-sm"
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-[#ea4335] hover:bg-[rgba(0,0,0,0.05)] transition-colors text-sm"
                                         >
                                             <Trash2 size={18} />
                                             Delete
@@ -245,7 +313,7 @@ export default function MessageBubble({
 
                     {/* Sender Name for Groups */}
                     {senderName && !isMe && (
-                        <p className="text-xs font-bold text-[#53bdeb] mb-1">
+                        <p className="text-xs font-bold text-[var(--whatsapp-text-secondary)] mb-1">
                             {senderName}
                         </p>
                     )}
@@ -253,8 +321,10 @@ export default function MessageBubble({
                     {/* WhatsApp Style Message Tail */}
                     <svg
                         className={cn(
-                            "absolute top-0 w-[8px] h-[13px] text-current",
-                            isMe ? "right-[-8px] text-[#005c4b] fill-current" : "left-[-8px] text-[#202c33] fill-current"
+                            "absolute top-0 w-[8px] h-[13px]",
+                            isMe
+                                ? "right-[-8px] fill-[var(--whatsapp-message-out)]"
+                                : "left-[-8px] fill-[var(--whatsapp-message-in)]"
                         )}
                         viewBox="0 0 8 13"
                         preserveAspectRatio="none"
@@ -300,20 +370,20 @@ export default function MessageBubble({
                         </div>
                     )}
 
-                    <div className="relative text-[14.2px] leading-[19px] text-[#e9edef] whitespace-pre-wrap break-words">
+                    <div className="relative text-[14.2px] leading-[19px] text-[var(--whatsapp-text-primary)] whitespace-pre-wrap break-words">
                         {message.text}
-                        {message.edited && <span className="text-[11px] text-[#8696a0] italic ml-1">edited</span>}
+                        {message.edited && <span className="text-[11px] text-[var(--whatsapp-text-secondary)] italic ml-1">edited</span>}
 
-                        {/* Spacer to reserve room for timestamp on the last line */}
-                        <span className="inline-block w-[72px] opacity-0 pointer-events-none align-middle">&nbsp;</span>
+                        {/* Spacer to reserve room for float */}
+                        <span className="inline-block w-[70px] opacity-0 pointer-events-none align-middle h-0">&nbsp;</span>
 
-                        {/* Timestamp Container: Floated right, with negative margin to overlap the spacer */}
-                        <span className="float-right -mt-[4px] -ml-[72px] h-[19px] flex items-center justify-end gap-1 select-none align-bottom ml-1">
-                            <span className="text-[11px] text-[#ffffff99] min-w-fit antialiased">
+                        {/* Timestamp Container: Floated right */}
+                        <span className="float-right mt-1.5 -ml-[70px] flex items-center justify-end gap-1 select-none">
+                            <span className="text-[11px] text-[var(--whatsapp-text-time)] min-w-fit antialiased leading-none">
                                 {message.timestamp ? formatDate(new Date(message.timestamp)) : "..."}
                             </span>
                             {isMe && (
-                                <span className={cn("ml-[2px]", message.read ? "text-[#53bdeb]" : "text-[#8696a0]")}>
+                                <span className={cn("ml-0.5", message.read ? "text-[var(--whatsapp-blue-tick)]" : "text-[var(--whatsapp-text-secondary)]")}>
                                     <svg viewBox="0 0 16 11" height="11" width="16" preserveAspectRatio="xMidYMid meet" className="block fill-current">
                                         <path d="M11.5153 0.270923C11.1611 -0.089856 10.5878 -0.0905476 10.2343 0.269434L4.85694 5.75961L2.8312 3.75058C2.4727 3.39501 1.89436 3.3986 1.54041 3.75861C1.1895 4.11553 1.19232 4.69083 1.54668 5.04416L4.22558 7.71537C4.40263 7.8919 4.63935 7.98502 4.8817 7.98144C5.12285 7.9778 5.35336 7.8778 5.52554 7.702L11.5033 1.56475C11.8543 1.20443 11.8573 0.628929 11.5153 0.270923Z" />
                                         <path d="M14.9095 0.270923C14.5553 -0.089856 13.982 -0.0905476 13.6285 0.269434L13.1165 0.792443C12.7816 1.13452 12.7661 1.68114 13.0822 2.04169C13.0822 2.04169 13.0826 2.04213 13.083 2.04257C13.083 2.04257 14.8058 4.02029 14.8058 4.02029C15.0116 4.25656 15.0116 4.60948 14.8058 4.84575L9.62319 10.7963C9.29654 11.1714 8.71887 11.1983 8.36034 10.8562L7.69708 10.2234C7.69578 10.2222 7.69449 10.2209 7.6932 10.2197C7.30606 9.85025 7.28854 9.23232 7.65349 8.8407L8.71186 7.62551C8.71186 7.62551 6.84055 5.7562 6.84055 5.7562L7.50294 5.08013C7.50294 5.08013 9.40776 6.97985 9.40776 6.97985C9.40776 6.97985 14.8975 1.56475 14.8975 1.56475C15.2486 1.20443 15.2515 0.628929 14.9095 0.270923Z" />
@@ -328,10 +398,10 @@ export default function MessageBubble({
                 {!isMe && (
                     <button
                         onClick={() => onReply(message)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity self-center ml-2 p-1.5 rounded-full hover:bg-[#2a3942]"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity self-center ml-2 p-1.5 rounded-full hover:bg-[rgba(0,0,0,0.05)]"
                         title="Reply"
                     >
-                        <Reply size={16} className="text-[#8696a0]" />
+                        <Reply size={16} className="text-[var(--whatsapp-text-secondary)]" />
                     </button>
                 )}
             </motion.div>
