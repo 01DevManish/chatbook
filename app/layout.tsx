@@ -41,6 +41,9 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  other: {
+    "google-adsense-account": "ca-pub-6726509196448329",
+  },
 };
 
 export default function RootLayout({
@@ -53,16 +56,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6726509196448329"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
         <AuthProvider>
           <CallProvider>
             <NotificationManager />
             <CallModal />
-            <Script
-              async
-              src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6726509196448329"
-              crossOrigin="anonymous"
-              strategy="afterInteractive"
-            />
             {children}
           </CallProvider>
         </AuthProvider>
