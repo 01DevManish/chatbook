@@ -1,161 +1,225 @@
-"use client";
+import { Metadata } from 'next';
+import Link from 'next/link';
+import Navbar from '@/components/Marketing/Navbar';
+import Footer from '@/components/Marketing/Footer';
+import { BLOG_POSTS } from '@/lib/blog-content';
+import { Shield, Lock, Globe, Zap, Smartphone, Users } from 'lucide-react';
 
-import { useEffect, useState, Suspense } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { useRouter, useSearchParams } from "next/navigation";
-import Sidebar from "@/components/Chat/Sidebar";
-import ChatWindow from "@/components/Chat/ChatWindow";
-import { cn } from "@/lib/utils";
+export const metadata: Metadata = {
+  title: 'Chatbook - Secure, Fast, and Private Messaging for Everyone',
+  description: 'Connect with friends and family globally with Chatbook. Enjoy end-to-end encrypted messaging, voice calls, and video chats. Simple, reliable, and secure.',
+  keywords: ['chat app', 'secure messaging', 'end-to-end encryption', 'private chat', 'video call', 'Chatbook'],
+  openGraph: {
+    title: 'Chatbook - Secure Real-time Messaging',
+    description: 'Experience the next generation of private communication. Free, secure, and fast for everyone.',
+    images: ['/og-image.jpg'],
+  },
+};
 
-interface UserData {
-  uid: string;
-  displayName?: string;
-  email?: string;
-  photoURL?: string;
-  username?: string;
-  lastSeen?: number;
-}
-
-function HomeContent() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const selectedUserId = searchParams.get('chat');
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
-
-  // Sync URL -> State
-  useEffect(() => {
-    if (selectedUserId) {
-      const fetchUser = async () => {
-        // Dynamic imports for performance (optional, but kept consistent)
-        const { ref, get } = await import("firebase/database");
-        const { rtdb } = await import("@/lib/firebase");
-        const snap = await get(ref(rtdb, `users/${selectedUserId}`));
-        if (snap.exists()) {
-          setSelectedUser({ uid: selectedUserId, ...snap.val() });
-        }
-      };
-
-      // Execute the async fetch
-      fetchUser();
-    } else {
-      setSelectedUser(null);
-    }
-  }, [selectedUserId]);
-
-  // Redirect to Login if not authenticated
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-    }
-  }, [user, loading, router]);
-
-  const handleSelectUser = (u: UserData) => {
-    // Push state so back button works - force push
-    // We use shallow: true? No, we want history. 
-    // scroll: false keeps the viewport stable.
-    router.push(`/?chat=${u.uid}`, { scroll: false });
-    // Manually set state for immediate feedback
-    setSelectedUser(u);
-  };
-
-  const handleBack = () => {
-    // Use router.back() to pop the history stack
-    router.back();
-  };
-
-  // Show loading during auth check OR if redirecting (no user)
-  if (loading || !user) {
-    return (
-      <div className="flex h-screen h-[100dvh] items-center justify-center bg-gray-100">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-green-500 border-t-transparent"></div>
-          <p className="text-gray-500 text-sm">Loading Chatbook...</p>
-        </div>
-      </div>
-    );
-  }
+export default function LandingPage() {
+  const recentPosts = BLOG_POSTS.slice(0, 3);
 
   return (
-    <div className="flex h-screen h-[100dvh] overflow-hidden bg-[#111b21] safe-area-top">
-      {/* Container with max width for large screens */}
-      <div className="flex w-full max-w-[1600px] mx-auto shadow-2xl h-full">
+    <div className="min-h-screen bg-[#111b21] text-[#e9edef] flex flex-col">
+      <Navbar />
 
-        {/* Sidebar - WhatsApp style */}
-        <div
-          className={cn(
-            "flex-shrink-0 bg-[#111b21] border-r border-[#2a3942] transition-all duration-200 ease-in-out",
-            // Mobile: full width, hidden when chat open
-            "w-full",
-            // Tablet: Fixed width, slightly wider for better read
-            "sm:w-[360px]",
-            // Desktop: Fluid width, max 450px for premium feel
-            "lg:w-[400px] xl:w-[30%] xl:max-w-[450px]",
-            // Hide on mobile when chat is selected
-            selectedUser ? "hidden sm:flex" : "flex"
-          )}
-        >
-          <Sidebar
-            selectedUser={selectedUser}
-            onSelectUser={handleSelectUser}
-          />
-        </div>
+      {/* Hero Section */}
+      <section className="relative pt-32 pb-20 overflow-hidden">
+        {/* Abstract Background */}
+        <div className="absolute top-0 inset-x-0 h-[600px] bg-gradient-to-b from-[#00a884]/10 to-transparent pointer-events-none" />
 
-        {/* Chat Window - WhatsApp style */}
-        <div
-          className={cn(
-            "flex-1 flex-col bg-[#0b141a] min-w-0 transition-all duration-200 ease-in-out",
-            // Show/hide based on selection
-            selectedUser ? "flex" : "hidden sm:flex"
-          )}
-        >
-          {selectedUser ? (
-            <ChatWindow
-              selectedUser={selectedUser}
-              onBack={handleBack}
-            />
-          ) : (
-            <div className="hidden h-full flex-col items-center justify-center text-center sm:flex bg-[#222e35]">
-              {/* WhatsApp-style empty state */}
-              <div className="max-w-md px-8">
-                <div className="mb-6 flex justify-center">
-                  <img
-                    src="/logo.png"
-                    alt="Chatbook"
-                    className="w-24 h-24 opacity-80"
-                  />
+        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center relative z-10">
+          <div className="space-y-8 text-center lg:text-left">
+            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.1]">
+              Simple. Secure. <br />
+              <span className="text-[#00a884] bg-clip-text text-transparent bg-gradient-to-r from-[#00a884] to-[#25d366]">Reliable.</span>
+            </h1>
+            <p className="text-xl text-[#8696a0] max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+              With Chatbook, you get fast, simple, secure messaging and calling for free*, available on phones all over the world.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+              <Link
+                href="/web"
+                className="px-8 py-4 bg-[#00a884] hover:bg-[#008f6f] text-[#111b21] rounded-full font-bold text-lg transition-transform hover:scale-105 shadow-xl shadow-[#00a884]/20 w-full sm:w-auto text-center"
+              >
+                Open Chatbook Web
+              </Link>
+              <Link
+                href="#features"
+                className="px-8 py-4 bg-[#202c33] hover:bg-[#2a3942] text-white rounded-full font-semibold text-lg transition-colors border border-[#2a3942] w-full sm:w-auto text-center"
+              >
+                Learn More
+              </Link>
+            </div>
+            <p className="text-sm text-[#54656f]">
+              *Data charges may apply. Contact your provider for details.
+            </p>
+          </div>
+
+          {/* Hero Image Mockup */}
+          <div className="relative mx-auto lg:ml-auto w-full max-w-[500px] lg:max-w-none">
+            <div className="relative rounded-[2.5rem] border-[8px] border-[#2a3942] bg-[#0b141a] overflow-hidden shadow-2xl aspect-[9/16] sm:aspect-[4/3] lg:aspect-square flex items-center justify-center">
+              {/* Simulate Chat UI */}
+              <div className="w-full h-full bg-[#0b141a] p-4 flex flex-col gap-4 opacity-80">
+                <div className="flex items-center gap-3 p-2 border-b border-[#2a3942]">
+                  <div className="w-10 h-10 rounded-full bg-gray-600"></div>
+                  <div className="h-4 w-32 bg-gray-700 rounded"></div>
                 </div>
-                <h2 className="text-2xl font-light text-[#e9edef] mb-3">
-                  Chatbook Web
-                </h2>
-                <p className="text-sm text-[#8696a0] leading-relaxed">
-                  Send and receive messages without keeping your phone online.
-                  <br />
-                  Use Chatbook on up to 4 linked devices and 1 phone at the same time.
-                </p>
-                <div className="mt-8 pt-6 border-t border-[#2a3942]">
-                  <p className="text-xs text-[#667781] flex items-center justify-center gap-2">
-                    <span className="inline-block w-4 h-4">🔒</span>
-                    End-to-end encrypted
-                  </p>
+                <div className="space-y-4 overflow-hidden">
+                  <div className="bg-[#202c33] p-3 rounded-lg rounded-tl-none self-start max-w-[80%] ml-0 mr-auto">
+                    <div className="h-2 w-24 bg-gray-600 rounded mb-2"></div>
+                    <div className="h-2 w-48 bg-gray-600 rounded"></div>
+                  </div>
+                  <div className="bg-[#005c4b] p-3 rounded-lg rounded-tr-none self-end max-w-[80%] ml-auto mr-0">
+                    <div className="h-2 w-32 bg-green-800 rounded mb-2"></div>
+                    <div className="h-2 w-40 bg-green-800 rounded"></div>
+                  </div>
+                  <div className="bg-[#202c33] p-3 rounded-lg rounded-tl-none self-start max-w-[80%] ml-0 mr-auto">
+                    <div className="h-2 w-56 bg-gray-600 rounded"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                <div className="text-center">
+                  <Globe size={64} className="text-[#00a884] mx-auto mb-4 animate-pulse" />
+                  <span className="text-2xl font-bold">Connecting the World</span>
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
-    </div>
-  );
-}
+      </section>
 
-export default function HomePage() {
-  return (
-    <Suspense fallback={
-      <div className="flex h-screen items-center justify-center bg-[#111b21] text-white">
-        Loading...
-      </div>
-    }>
-      <HomeContent />
-    </Suspense>
+      {/* Features Grid */}
+      <section id="features" className="py-24 bg-[#0b141a]">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Why Chatbook?</h2>
+            <p className="text-lg text-[#8696a0] max-w-2xl mx-auto">
+              Built for people, not for profit. Your privacy is our priority.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="p-8 rounded-2xl bg-[#111b21] border border-[#2a3942] hover:border-[#00a884] transition-colors group">
+              <div className="w-14 h-14 bg-[#00a884]/10 rounded-xl flex items-center justify-center text-[#00a884] mb-6 group-hover:bg-[#00a884] group-hover:text-[#111b21] transition-all">
+                <Lock size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">End-to-End Encryption</h3>
+              <p className="text-[#8696a0] leading-relaxed">
+                Security by default. Only you and the person you're communicating with can read or listen to them. Nobody in between, not even Chatbook.
+              </p>
+            </div>
+
+            <div className="p-8 rounded-2xl bg-[#111b21] border border-[#2a3942] hover:border-[#00a884] transition-colors group">
+              <div className="w-14 h-14 bg-[#00a884]/10 rounded-xl flex items-center justify-center text-[#00a884] mb-6 group-hover:bg-[#00a884] group-hover:text-[#111b21] transition-all">
+                <Zap size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">Real-time Speed</h3>
+              <p className="text-[#8696a0] leading-relaxed">
+                Messages are delivered instantly. Even on slow connections, Chatbook is optimized to perform reliably and efficiently.
+              </p>
+            </div>
+
+            <div className="p-8 rounded-2xl bg-[#111b21] border border-[#2a3942] hover:border-[#00a884] transition-colors group">
+              <div className="w-14 h-14 bg-[#00a884]/10 rounded-xl flex items-center justify-center text-[#00a884] mb-6 group-hover:bg-[#00a884] group-hover:text-[#111b21] transition-all">
+                <Smartphone size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">Sync Across Devices</h3>
+              <p className="text-[#8696a0] leading-relaxed">
+                Seamlessly access your chats from your phone, tablet, and desktop. Your conversations are always up to date.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Security Banner */}
+      <section className="py-24 bg-[#00a884] text-[#111b21] relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-10" />
+        <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
+          <Shield className="w-20 h-20 mx-auto mb-8 opacity-80" />
+          <h2 className="text-4xl md:text-5xl font-black mb-8">Security You Can Trust</h2>
+          <p className="text-xl md:text-2xl font-medium mb-12 opacity-90 max-w-2xl mx-auto">
+            We don't sell your data. We don't read your messages. We just build the best technology to connect you with the people who matter most.
+          </p>
+          <Link
+            href="/privacy"
+            className="inline-block px-8 py-4 bg-[#111b21] text-white rounded-full font-bold text-lg hover:bg-black transition-transform hover:scale-105"
+          >
+            Read Our Privacy Policy
+          </Link>
+        </div>
+      </section>
+
+      {/* Blog Preview */}
+      <section className="py-24 bg-[#111b21]">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-end justify-between mb-16">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Latest from our Blog</h2>
+              <p className="text-[#8696a0]">Stay updated with the latest in security and tech.</p>
+            </div>
+            <Link href="/blog" className="text-[#00a884] font-bold hover:underline hidden md:block">
+              View All Articles &rarr;
+            </Link>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {recentPosts.map((post) => (
+              <div key={post.slug} className="group">
+                <Link href={`/blog/${post.slug}`}>
+                  <div className="bg-[#202c33] rounded-xl overflow-hidden h-full flex flex-col hover:ring-2 hover:ring-[#00a884] transition-all">
+                    <div className="h-48 bg-[#2a3942] flex items-center justify-center text-[#54656f] group-hover:bg-[#0b141a] transition-colors">
+                      <span className="text-4xl">📝</span>
+                    </div>
+                    <div className="p-6 flex flex-col flex-1">
+                      <span className="text-xs font-bold text-[#00a884] mb-2">{post.category}</span>
+                      <h3 className="text-xl font-bold text-white mb-3 line-clamp-2 group-hover:text-[#00a884] transition-colors">
+                        {post.title}
+                      </h3>
+                      <p className="text-[#8696a0] text-sm mb-4 line-clamp-3">
+                        {post.excerpt}
+                      </p>
+                      <div className="mt-auto pt-4 border-t border-[#2a3942] flex justify-between text-xs text-[#667781]">
+                        <span>{post.date}</span>
+                        <span>{post.readTime}</span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 text-center md:hidden">
+            <Link href="/blog" className="text-[#00a884] font-bold hover:underline">
+              View All Articles &rarr;
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQs */}
+      <section className="py-24 bg-[#0b141a]">
+        <div className="max-w-4xl mx-auto px-6">
+          <h2 className="text-3xl font-bold text-white mb-12 text-center">Frequently Asked Questions</h2>
+          <div className="space-y-6">
+            {[
+              { q: "Is Chatbook really free?", a: "Yes, Chatbook uses your phone's Internet connection (4G/3G/2G/EDGE or Wi-Fi, as available) to let you message and call friends and family, so you don't have to pay for every message or call." },
+              { q: "How secure is Chatbook?", a: "Extremely. We use end-to-end encryption for all messages and calls. This means only you and the person you're communicating with can read or listen to them." },
+              { q: "Can I use Chatbook on my computer?", a: "Yes! You can use Chatbook Web directly from your browser to chat on your laptop or desktop computer." }
+            ].map((faq, i) => (
+              <div key={i} className="bg-[#111b21] p-6 rounded-xl border border-[#2a3942]">
+                <h3 className="text-lg font-bold text-white mb-3">{faq.q}</h3>
+                <p className="text-[#8696a0] leading-relaxed">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
   );
 }

@@ -711,5 +711,224 @@ Encryption puts the power of privacy in the hands of the individual. It prevents
 ## The Conversation
 It has also changed *how* we talk. Knowing the conversation is private encourages vulnerability and honesty. It is a return to the intimacy of a whisper, but across eager oceans.
         `
+    },
+    {
+        slug: "safe-file-sharing",
+        title: "The Ultimate Guide to Safe File Sharing Online",
+        excerpt: "Sending documents? Photos? Learn how to share files without compromising metadata or quality.",
+        date: "Feb 26, 2026",
+        readTime: "5 min read",
+        category: "Privacy & Security",
+        tags: ["File Sharing", "Metadata", "Security"],
+        keywords: ["safe file share", "remove metadata photos", "secure document transfer"],
+        content: `
+# Safe File Sharing 101
+
+## 1. Metadata Stripping
+Every photo you take has EXIF data: Camera model, Date, and **GPS Coordinates**. When you share a raw file, you share your location.
+*   **Chatbook Automatic Protection**: We strip EXIF data from images before sending them.
+*   **Manual**: Use apps like "Scrambled Exif" (Android) or "Metapho" (iOS) before sharing on insecure platforms.
+
+## 2. Document Safety
+PDFs can contain hidden revision history. Always "Flatten" PDFs or print-to-pdf to remove edit history before sharing sensitive contracts.
+        `
+    },
+    {
+        slug: "avoiding-social-engineering",
+        title: "Social Engineering: The Art of Human Hacking",
+        excerpt: "Hackers don't hack computers; they hack people. Learn the psychological triggers they use.",
+        date: "Feb 27, 2026",
+        readTime: "7 min read",
+        category: "User Safety",
+        tags: ["Social Engineering", "Psychology", "Hacking"],
+        keywords: ["social engineering examples", "psychological hacking", "pretexting"],
+        content: `
+# Hacking the Human Mind
+
+Social engineering relies on:
+1.  **Urgency**: "Your account will be deleted in 1 hour!" (Panic stops thinking).
+2.  **Authority**: "This is the Police/IRS." (Fear induces compliance).
+3.  **Curiosity**: "Is this you in this video?" (Desire to know).
+
+## The Defense
+*   **Pause**: If a message makes you panic, it's a scam.
+*   **Verify**: Contact the entity through official channels, not the link provided.
+        `
+    },
+    {
+        slug: "vpn-and-chat-apps",
+        title: "Do You Need a VPN for Chat Apps?",
+        excerpt: "Encryption vs. Anonymity. What a VPN hides and what it doesn't.",
+        date: "Feb 28, 2026",
+        readTime: "5 min read",
+        category: "Privacy & Security",
+        tags: ["VPN", "Privacy", "IP Address"],
+        keywords: ["vpn with whatsapp", "hide ip address chat", "do i need a vpn"],
+        content: `
+# VPNs and Messaging
+
+## What Encryption Hides
+*   **Content**: "Hello Mom" looks like "Xy8#b1".
+
+## What Encryption Shows
+*   **IP Address**: The server knows *where* you are connecting from.
+
+## Why Use a VPN?
+*   **Hide Location**: The chat server sees the VPN's IP, not your home IP.
+*   **Bypass Censorship**: In countries where apps are blocked, a VPN tunnels out to a free country first.
+        `
+    },
+    {
+        slug: "history-of-cryptography",
+        title: "A Brief History of Cryptography: From Caesar to Quantum",
+        excerpt: "How secret writing evolved from Roman times to the digital age.",
+        date: "Mar 1, 2026",
+        readTime: "8 min read",
+        category: "Chat Technology",
+        tags: ["History", "Crypto", "Education"],
+        keywords: ["history of encryption", "caesar cipher", "enigma machine"],
+        content: `
+# The History of Secrets
+
+## 1. The Caesar Cipher
+Julius Caesar shifted letters by 3. A -> D. Simple, but effective against illiterate enemies.
+
+## 2. The Enigma Machine
+WWII. The Germans used a machine with rotating rotors. It was considered unbreakable, until Alan Turing and his team cracked it, shortening the war by years.
+
+## 3. Public Key Cryptography (1970s)
+Diffie-Hellman changed everything. You could share a secret in public without meeting first. This is the foundation of the Internet (HTTPS) and Chatbook.
+        `
+    },
+    {
+        slug: "digital-footprint-management",
+        title: "Managing Your Digital Footprint",
+        excerpt: "The internet never forgets. How to clean up your past and protect your future.",
+        date: "Mar 2, 2026",
+        readTime: "6 min read",
+        category: "User Safety",
+        tags: ["Digital Footprint", "Reputation", "Privacy"],
+        keywords: ["delete old accounts", "clean digital footprint", "google yourself"],
+        content: `
+# Your Digital Ghost
+
+Everything you post is archived.
+*   **The Wayback Machine**: Archives websites.
+*   **Data Brokers**: Scrape public profiles to build dossers.
+
+## Cleaning Up
+1.  **Google Yourself**: See what's out there.
+2.  **Delete Old Accounts**: MySpace? Old forums? Delete them. They are security holes waiting to leak your old passwords.
+        `
+    },
+    {
+        slug: "parental-controls-guide",
+        title: "A Parent's Guide to Safe Chatting for Kids",
+        excerpt: "Balancing privacy and protection. Tools and conversations for the modern parent.",
+        date: "Mar 3, 2026",
+        readTime: "10 min read",
+        category: "User Safety",
+        tags: ["Parents", "Kids", "Safety"],
+        keywords: ["chat safety for kids", "parental control apps", "monitor kids chat"],
+        content: `
+# Digital Parenting
+
+## 1. The "Talk"
+Don't just ban apps. Explain *why* strangers are dangerous. Teach them to come to you if they see something weird.
+
+## 2. Family Link / Screen Time
+Use OS-level tools to limit *when* they can chat (e.g., no apps after 9 PM).
+
+## 3. Open Device Policy
+For young kids, keep devices in common areas (Living Room), not bedrooms.
+        `
+    },
+    {
+        slug: "business-chat-etiquette",
+        title: "Professional Chat Etiquette for Business",
+        excerpt: "Emojis in work chats? Response times? The do's and don'ts of professional messaging.",
+        date: "Mar 4, 2026",
+        readTime: "5 min read",
+        category: "Legal & Trust",
+        tags: ["Business", "Etiquette", "Work"],
+        keywords: ["work chat rules", "professional messaging", "emojis at work"],
+        content: `
+# Professional Messaging
+
+## 1. Respect Hours
+Don't message at 10 PM expecting a reply. Schedule it for 9 AM.
+
+## 2. Conciseness
+Don't say "Hi." and wait.
+Say "Hi, can you send me the Q3 report?" (Context immediately).
+
+## 3. Emojis
+Use sparingly. A "Thumbs Up" is fine for acknowledgement. A "Heart" might be unprofessional depending on the relationship.
+        `
+    },
+    {
+        slug: "open-source-software-benefits",
+        title: "Why Open Source Software is Safer",
+        excerpt: "Transparency creates trust. Why hidden code is a security risk.",
+        date: "Mar 5, 2026",
+        readTime: "5 min read",
+        category: "Chat Technology",
+        tags: ["Open Source", "Security", "FOSS"],
+        keywords: ["open source security", "audit code", "proprietary vs open source"],
+        content: `
+# Trust but Verify
+
+**Proprietary Software** (Closed Source) requires you to trust the company. "We promise we aren't spying."
+**Open Source Software** allows anyone to check the code.
+
+## The "Many Eyes" Theory
+If code is public, thousands of security researchers can look for bugs. Bad code is spotted and fixed quickly. In closed code, bugs can hide for years (e.g., the EternalBlue exploit).
+        `
+    },
+    {
+        slug: "future-of-passwords",
+        title: "Passkeys and the Death of the Password",
+        excerpt: "Why typing 'Password123' is ending, and how biometrics are taking over.",
+        date: "Mar 6, 2026",
+        readTime: "4 min read",
+        category: "Privacy & Security",
+        tags: ["Passkeys", "Auth", "Security"],
+        keywords: ["what are passkeys", "passwordless login", "fido2"],
+        content: `
+# The Password Problem
+
+Passwords are:
+1.  Hard to remember.
+2.  Easy to steal (phishing).
+3.  Reused (security risk).
+
+## Enter Passkeys
+A Passkey is a cryptographic key stored on your device (secured by FaceID/TouchID).
+*   **No Phishing**: You can't "type" a passkey into a fake site.
+*   **No Memory**: Your face is the key.
+Chatbook supports secure authentication methods to prepare for this future.
+        `
+    },
+    {
+        slug: "digital-detox-strategies",
+        title: "Strategies for a Healthy Digital Detox",
+        excerpt: "Feeling overwhelmed? How to unplug without losing your social life.",
+        date: "Mar 7, 2026",
+        readTime: "5 min read",
+        category: "User Safety",
+        tags: ["Mental Health", "Wellness", "Detox"],
+        keywords: ["digital detox tips", "reduce screen time", "social media addiction"],
+        content: `
+# Unplugging
+
+## 1. Gray Scale
+Turn your phone screen to Black & White. It makes Instagram/TikTok instantly boring (dopamine reduction).
+
+## 2. No-Phone Zones
+The Dinner Table and The Bedroom. Keep them sacred.
+
+## 3. Notification Batching
+Turn off instant alerts. extensive research shows that "batching" checks to 3 times a day reduces anxiety and increases productivity.
+        `
     }
 ];
