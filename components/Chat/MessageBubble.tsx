@@ -208,8 +208,8 @@ export default function MessageBubble({
                     className={cn(
                         "max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] w-fit rounded-xl px-2.5 py-1.5 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] relative transition-all select-none",
                         isMe
-                            ? "bg-[var(--whatsapp-message-out)] text-[var(--whatsapp-text-primary)] rounded-tr-none"
-                            : "bg-[var(--whatsapp-message-in)] text-[var(--whatsapp-text-primary)] rounded-tl-none"
+                            ? "bg-[var(--whatsapp-message-out)] text-[var(--whatsapp-text-primary)] rounded-tr-none message-bubble-out"
+                            : "bg-[var(--whatsapp-message-in)] text-[var(--whatsapp-text-primary)] rounded-tl-none message-bubble-in"
                     )}
                 >
                     {/* Reactions Display */}

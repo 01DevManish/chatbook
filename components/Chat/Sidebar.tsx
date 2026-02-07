@@ -54,7 +54,7 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
-    // Fetch Contacts ONLY from Realtime Database
+    // Fetch Contacts AND Active Chats from Realtime Database
     useEffect(() => {
         if (!user) {
             setLoading(false);
@@ -62,56 +62,109 @@ export default function Sidebar({ selectedUser, onSelectUser }: SidebarProps) {
         }
 
         const contactsRef = ref(rtdb, `users/${user.uid}/contacts`);
+        const chatsRef = ref(rtdb, `users/${user.uid}/chats`); // New node for auto-added chats
         const groupsRef = ref(rtdb, `users/${user.uid}/groups`);
 
-        const unsubscribe = onValue(contactsRef, async (contactSnapshot) => {
-            const loadedContacts: UserData[] = [];
-            if (contactSnapshot.exists()) {
-                const contactsData = contactSnapshot.val();
-                const contactIds = Object.keys(contactsData);
-
-                for (const contactId of contactIds) {
-                    const userSnap = await get(ref(rtdb, `users/${contactId}`));
+        // Helper to load profiles
+        const loadProfiles = async (uids: string[]) => {
+            const profiles: UserData[] = [];
+            for (const uid of uids) {
+                try {
+                    const userSnap = await get(ref(rtdb, `users/${uid}`));
                     if (userSnap.exists()) {
-                        loadedContacts.push({
-                            uid: contactId,
+                        profiles.push({
+                            uid,
                             ...userSnap.val()
                         });
                     }
+                } catch (e) {
+                    console.error("Error fetching user profile:", uid, e);
+                }
+            }
+            return profiles;
+        };
+
+        // We need to listen to all three sources. 
+        // For simplicity in this structure, we'll nest them or use Promise.all logic inside a single listener effect wrapper isn't ideal for RTDB listeners.
+        // Better approach: Listen to them independently and merge status?
+        // OR: Just fetch one big object if possible? No, they are separate nodes.
+
+        // Let's use a combined state updater.
+        let mounted = true;
+
+        const handleData = async (contactsSnap: any, chatsSnap: any, groupsSnap: any) => {
+            if (!mounted) return;
+
+            const contactIds = contactsSnap.exists() ? Object.keys(contactsSnap.val()) : [];
+            const chatIds = chatsSnap.exists() ? Object.keys(chatsSnap.val()) : [];
+            const groupIds = groupsSnap.exists() ? Object.keys(groupsSnap.val()) : [];
+
+            // Merge unique User IDs (Contacts + Active Chats)
+            const uniqueUserIds = Array.from(new Set([...contactIds, ...chatIds]));
+
+            // Load User Profiles
+            const loadedUsers = await loadProfiles(uniqueUserIds);
+
+            // Load Groups
+            const loadedGroups: UserData[] = [];
+            for (const groupId of groupIds) {
+                try {
+                    const groupSnap = await get(ref(rtdb, `groups/${groupId}`));
+                    if (groupSnap.exists()) {
+                        const gData = groupSnap.val();
+                        loadedGroups.push({
+                            uid: groupId,
+                            displayName: gData.name,
+                            photoURL: gData.photoURL,
+                            isGroup: true,
+                            ...gData
+                        });
+                    }
+                } catch (e) {
+                    console.error("Error fetching group:", groupId, e);
                 }
             }
 
-            // Sync with groups
-            onValue(groupsRef, async (groupSnapshot) => {
-                const loadedGroups: UserData[] = [];
-                if (groupSnapshot.exists()) {
-                    const groupIds = Object.keys(groupSnapshot.val());
-                    for (const groupId of groupIds) {
-                        const groupSnap = await get(ref(rtdb, `groups/${groupId}`));
-                        if (groupSnap.exists()) {
-                            const gData = groupSnap.val();
-                            loadedGroups.push({
-                                uid: groupId,
-                                displayName: gData.name,
-                                photoURL: gData.photoURL,
-                                isGroup: true,
-                                ...gData
-                            });
-                        }
-                    }
-                }
-
-                const allItems = [...loadedContacts, ...loadedGroups];
-                setUsers(allItems);
+            if (mounted) {
+                setUsers([...loadedUsers, ...loadedGroups]);
                 setLoading(false);
-            }, { onlyOnce: false });
+            }
+        };
 
-        }, (error) => {
-            console.error("Error fetching contacts:", error);
-            setLoading(false);
+        // We'll set up listeners for all three and trigger the merge when ANY changes.
+        // This might be slightly expensive on every change, but safe for consistency.
+
+        const unsubContacts = onValue(contactsRef, (contactsSnap) => {
+            // Read others once to merge
+            get(chatsRef).then(chatsSnap => {
+                get(groupsRef).then(groupsSnap => {
+                    handleData(contactsSnap, chatsSnap, groupsSnap);
+                });
+            });
         });
 
-        return () => unsubscribe();
+        const unsubChats = onValue(chatsRef, (chatsSnap) => {
+            get(contactsRef).then(contactsSnap => {
+                get(groupsRef).then(groupsSnap => {
+                    handleData(contactsSnap, chatsSnap, groupsSnap);
+                });
+            });
+        });
+
+        const unsubGroups = onValue(groupsRef, (groupsSnap) => {
+            get(contactsRef).then(contactsSnap => {
+                get(chatsRef).then(chatsSnap => {
+                    handleData(contactsSnap, chatsSnap, groupsSnap);
+                });
+            });
+        });
+
+        return () => {
+            mounted = false;
+            unsubContacts();
+            unsubChats();
+            unsubGroups();
+        };
     }, [user]);
 
     // Fetch Last Message & Unread Counts for each user

@@ -277,10 +277,10 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
         const element = document.getElementById(`message-${messageId}`);
         if (element) {
             element.scrollIntoView({ behavior: "smooth", block: "center" });
-            // Optional: Highlight effect
-            element.classList.add("bg-[#2a3942]");
+            // Highlight effect using CSS animation
+            element.classList.add("message-highlight");
             setTimeout(() => {
-                element.classList.remove("bg-[#2a3942]");
+                element.classList.remove("message-highlight");
             }, 1000);
         }
     };
@@ -528,6 +528,17 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
                 senderId: user.uid,
             });
 
+            // 🚀 AUTOMATICALLY ADD TO ACTIVE CHATS FOR BOTH USERS
+            // This ensures they show up in each other's sidebar without "Add Contact"
+            try {
+                const updates: any = {};
+                updates[`users/${user.uid}/chats/${selectedUser.uid}`] = true;
+                updates[`users/${selectedUser.uid}/chats/${user.uid}`] = true;
+                await update(ref(rtdb), updates);
+            } catch (err) {
+                console.error("Error updating active chats:", err);
+            }
+
         } catch (error) {
             console.error("Error sending message:", error);
         }
@@ -725,7 +736,7 @@ export default function ChatWindow({ selectedUser, onBack }: ChatWindowProps) {
             <div
                 id="messages-container"
                 onScroll={handleScroll}
-                className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-2 sm:px-6 lg:px-12"
+                className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-2 sm:px-6 lg:px-12 smooth-scroll"
                 style={{
                     backgroundColor: 'var(--whatsapp-bg)',
                     backgroundImage: wallpaper
