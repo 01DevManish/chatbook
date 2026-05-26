@@ -90,6 +90,25 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Promo Banner */}
+      <section className="py-10 bg-[#111b21]">
+        <div className="max-w-7xl mx-auto px-6">
+          <a
+            href="https://www.amazon.in/s?k=HOMCOT&ref=bl_dp_s_web_0"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block rounded-2xl overflow-hidden border border-[#2a3942] hover:border-[#00a884] transition-colors"
+          >
+            <img
+              src="https://epanelimages.s3.ap-south-1.amazonaws.com/clout/assets/fil_cee01e74-a66a-4c57-8c4d-f74e9d52cfc1.webp"
+              alt="Built for people, not for profit. Your privacy is our priority."
+              className="w-full h-auto object-cover"
+              loading="lazy"
+            />
+          </a>
+        </div>
+      </section>
+
       {/* Features Grid */}
       <section id="features" className="py-24 bg-[#0b141a]">
         <div className="max-w-7xl mx-auto px-6">
